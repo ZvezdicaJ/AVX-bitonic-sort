@@ -7,8 +7,11 @@
 #include <chrono>
 #include <ctime>
 #include <array>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+
+namespace {
 
 std::default_random_engine generator(std::time(0));
 std::uniform_real_distribution<float> float_dist(-100, 100);
@@ -19,6 +22,16 @@ auto random_float = std::bind(float_dist, generator);
 auto random_double = std::bind(double_dist, generator);
 auto random_int = std::bind(int_dist, generator);
 auto random_pos_int = std::bind(pos_int_dist, generator);
+
+template<typename T>
+std::vector<T> getRandomVector(std::size_t size){
+    std::vector<T> vec;
+    vec.reserve(size);
+    for(std::size_t i=0; i<size; i++) {
+        vec.push_back(random_double());
+    }
+    return vec;
+}
 
 TEST(BITONIC_SORT, AVX_SINGLE_REG_DOUBLE) {
     std::array registers = {
@@ -33,13 +46,9 @@ TEST(BITONIC_SORT, AVX_SINGLE_REG_DOUBLE) {
 
 TEST(BITONIC_SORT, AVX_SINGLE_REG_DOUBLE_RANDOM) {
     for(int i=0; i< 10; i++) {
-        double randomVec[] = {
-            random_double(), 
-            random_double(),
-            random_double(),
-            random_double()};
+        auto randomVec = getRandomVector<double>(4);
 
-        __m256d randomReg = _mm256_loadu_pd(randomVec);
+        __m256d randomReg = _mm256_loadu_pd(randomVec.data());
         runRegisterSortTest(randomReg);
     }
 }
@@ -56,20 +65,10 @@ TEST(SORT, BITONIC_AVX_SORT_REG2_DOUBLE) {
         runRegisterSortTest(reg0, reg1);
     }    
     for(std::uint32_t i=0; i<10; i++) {
-        std::vector<double> inp0({
-            random_double(), 
-            random_double(),
-            random_double(),
-            random_double()});
-        std::vector<double> inp1({
-            random_double(), 
-            random_double(),
-            random_double(),
-            random_double()});
-
+        std::vector<double> inp0 = getRandomVector<double>(4);
+        std::vector<double> inp1 = getRandomVector<double>(4);
         __m256d reg0 = _mm256_loadu_pd(inp0.data());
         __m256d reg1 = _mm256_loadu_pd(inp1.data());
-
         runRegisterSortTest(reg0, reg1);
     }
 }
@@ -91,18 +90,10 @@ TEST(SORT, BITONIC_AVX_SORT_4REG_DOUBLE) {
     }
 
     {
-        std::vector<double> inp0({random_double(), random_double(),
-                                  random_double(),
-                                  random_double()});
-        std::vector<double> inp1({random_double(), random_double(),
-                                  random_double(),
-                                  random_double()});
-        std::vector<double> inp2({random_double(), random_double(),
-                                  random_double(),
-                                  random_double()});
-        std::vector<double> inp3({random_double(), random_double(),
-                                  random_double(),
-                                  random_double()});
+        std::vector<double> inp0 = getRandomVector<double>(4);
+        std::vector<double> inp1 = getRandomVector<double>(4);
+        std::vector<double> inp2 = getRandomVector<double>(4);
+        std::vector<double> inp3 = getRandomVector<double>(4);
 
         __m256d reg0 = _mm256_loadu_pd(inp0.data());
         __m256d reg1 = _mm256_loadu_pd(inp1.data());
@@ -118,68 +109,45 @@ TEST(SORT, BITONIC_AVX_SORT_4REG_DOUBLE) {
 TEST(SORT, TEST_2N_SORT_DOUBLE_VER) {
 
     {
-        aligned_vector<double> inp0({random_float(), random_float(),
-                                     random_float(),
-                                     random_float()});
-        aligned_vector<double> inp1 = inp0;
+        std::vector<double> vec1 = getRandomVector<double>(4);
+        std::vector<double> vec2 = vec1;
 
-        BITONIC_SORT::sort_2n_vector(inp0.data(), 4);
-        std::sort(inp1.begin(), inp1.end());
+        BITONIC_SORT::sort_2n_vector(vec1.data(), 4);
+        std::sort(vec2.begin(), vec2.end());
 
-        for (int i = 0; i < 4; i++) {
-            EXPECT_EQ(inp1[i], inp0[i]);
-        }
+        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
     {
-        aligned_vector<double> inp0;
-        aligned_vector<double> inp1;
-        inp0.reserve(8);
-        for (int i = 0; i < 8; i++)
-            inp0.push_back(random_float());
+        std::vector<double> vec1 = getRandomVector<double>(8);
+        std::vector<double> vec2 = vec1;
 
-        inp1 = inp0;
-        BITONIC_SORT::sort_2n_vector(inp1.data(), 8);
+        BITONIC_SORT::sort_2n_vector(vec1.data(), 8);
+        std::sort(vec2.begin(), vec2.end());
 
-        std::sort(std::begin(inp0), std::end(inp0));
-
-        for (int i = 0; i < 8; i++) {
-            EXPECT_EQ(inp1[i], inp0[i]);
-        }
+        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 }
 
 TEST(SORT, TEST_2N_SORT_DOUBLE_VER_TEST2) {
 
-    for (int k = 0; k < 5; k++) {
-        for (int j = 0; j < 5; j++) {
-            unsigned size = 8192;
-            size *= (1 << k); //  1 << 2 = (int) Math.pow(2, 2)
-            unsigned move_start = 1 << k;
-            unsigned move_end = 1 << k;
+    for (int k = 1; k < 5; k++) {
+        for (int j = 1; j < 5; j++) {
+            // Shift bits to the left - basically multiplication with 2. 
+            // 1 << 3:  1000 
+            std::uint32_t const startAt = 1U << k;
+            std::uint32_t const numberToSort = 8192;
+            std::uint32_t const size = numberToSort + startAt;
 
-            aligned_vector<double> inp0;
-            aligned_vector<double> inp1;
-            size = size + move_start + move_end;
+            std::vector<double> vec1 = getRandomVector<double>(size);
+            std::vector<double> vec2 = vec1;
 
-            inp0.reserve(size);
+            BITONIC_SORT::sort_2n_vector(
+                vec1.data() + startAt, numberToSort);
 
-            for (unsigned i = 0; i < size; i++)
-                inp0.push_back(random_float());
+            std::sort(vec2.begin() + startAt, vec2.end());
 
-            inp1 = inp0;
-
-            BITONIC_SORT::sort_2n_vector(inp1.data() + move_start,
-                                         size - move_end -
-                                             move_start);
-
-            std::sort(std::next(std::begin(inp0), move_start),
-                      std::prev(std::end(inp0), move_end));
-
-            for (unsigned i = move_start; i < size - move_end;
-                 i++) {
-                EXPECT_EQ(inp1[i], inp0[i]);
-            }
+            EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
         }
     }
 }
@@ -188,102 +156,57 @@ TEST(SORT, TEST_2N_SORT_DOUBLE_VER_TEST2) {
 
 TEST(SORT, TEST_SORT_DOUBLE_4n_VECTOR) {
 
-    for (unsigned size = 4; size <= 2000; size += 4) {
-        aligned_vector<double> inp0;
-        aligned_vector<double> inp1;
-        inp0.reserve(size);
-        for (unsigned i = 0; i < size; i++)
-            inp0.push_back(random_float());
+    for (std::uint32_t size = 4; size <= 2000; size += 4) {
+        std::vector<double> vec1 = getRandomVector<double>(size);
+        std::vector<double> vec2 = vec1;
 
-        inp1 = inp0;
-        BITONIC_SORT::sort_4n_vector(inp1.data(), size);
+        BITONIC_SORT::sort_4n_vector(vec1.data(), size);
+        std::sort(vec2.begin(), vec2.end());
 
-        std::sort(std::begin(inp0), std::end(inp0));
-
-        for (int i = 0; i < size; i++) {
-            EXPECT_EQ(inp1[i], inp0[i]);
-        }
+        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
-    for (int i = 0; i < 2; i++) {
+    {
+        constexpr std::uint32_t startAt = 4*133;
+        constexpr std::uint32_t numberToSort = 4*333;
+        constexpr std::uint32_t size = numberToSort + startAt;
 
-        unsigned move_start = (random_pos_int() % 4) * 4;
-        unsigned move_end = (random_pos_int() % 4) * 4;
-        unsigned size =
-            move_start + move_end + 4 * random_pos_int();
+        std::vector<double> vec1 = getRandomVector<double>(size);
+        std::vector<double> vec2 = vec1;
 
-        aligned_vector<double> inp0;
-        aligned_vector<double> inp1;
+        BITONIC_SORT::sort_4n_vector(vec1.data() + startAt, numberToSort);
+        std::sort(vec2.begin() + startAt, vec2.end());
 
-        inp0.reserve(size);
+        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
 
-        for (unsigned i = 0; i < size; i++) {
-            inp0.push_back(random_double());
-            // std::cout << i << ": " << inp0[i] << std::endl;
-        }
-
-        inp1 = inp0;
-
-        auto p1 = std::next(inp0.begin(), move_start);
-        auto p2 = std::prev(inp0.end(), move_end);
-
-        BITONIC_SORT::sort_4n_vector(inp1.data() + move_start,
-                                     size - move_end - move_start);
-        std::sort(p1, p2);
-
-        for (unsigned i = move_start; i < size - move_end; i++) {
-            // std::cout << i << ": " << inp1[i] << "  " << inp0[i]
-            //          << std::endl;
-            EXPECT_EQ(inp1[i], inp0[i]);
-        }
     }
 }
 
 TEST(SORT, TEST_SORT_DOUBLE_VECTOR_ALL_CASES) {
 
-    for (unsigned size = 1; size < 1000; size++) {
+    for (std::uint32_t size = 1; size < 1000; size++) {
 
-        aligned_vector<double> inp0;
-        aligned_vector<double> inp1;
-        inp0.reserve(size);
-        for (unsigned i = 0; i < size; i++)
-            inp0.push_back(random_double());
+        std::vector<double> vec1 = getRandomVector<double>(size);
+        std::vector<double> vec2 = vec1;
 
-        inp1 = inp0;
-        BITONIC_SORT::sort_vector(inp1);
-
-        std::sort(inp0.begin(), inp0.end());
-
-        /* for (int i = 0; i < size; i++) {
-           std::cout << inp1[i] << std::endl;
-           if (mod8(i + 1) == 0)
-           std::cout << "\n";
-           }*/
-
-        for (int i = 0; i < size; i++) {
-            EXPECT_EQ(inp1[i], inp0[i]);
-        }
+        BITONIC_SORT::sort_vector(vec1);
+        std::sort(vec2.begin(), vec2.end());
+        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
-    for (unsigned size = 1000; size < 5000; size++) {
+    for (std::uint32_t size = 1000; size < 5000; size++) {
 
-        aligned_vector<double> inp0;
-        aligned_vector<double> inp1;
-        inp0.reserve(size);
-        for (unsigned i = 0; i < size; i++)
-            inp0.push_back(random_double());
+        std::vector<double> vec1 = getRandomVector<double>(size);
+        std::vector<double> vec2 = vec1;
 
-        inp1 = inp0;
+        std::uint32_t startAt = size / 2;
+        std::uint32_t numberToSort = size - startAt;
+        BITONIC_SORT::sort_vector(
+            std::span<double>{vec1.data() + startAt, numberToSort});
 
-        unsigned move_start = random_pos_int() % 500;
-        unsigned move_end = random_pos_int() % 500;
+        std::sort(vec2.begin() + startAt, vec2.end());
 
-        BITONIC_SORT::sort_vector(std::span<double>{inp1.data() + move_start, size - move_start - move_end});
-
-        std::sort(std::next(inp0.begin(), move_start), std::prev(inp0.end(), move_end));
-
-        for (int i = move_start; i < size - move_end; i++) {
-            EXPECT_EQ(inp1[i], inp0[i]);
-        }
+        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
+}
 }
