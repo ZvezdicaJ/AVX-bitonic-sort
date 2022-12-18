@@ -5,10 +5,37 @@
 
 #include <cstdint>
 #include <array>
+#include <random>
+#include <functional>
 
 #include <immintrin.h>
 
-#include <bitonic_sort_double.hpp>
+#include <bitonic_sort.hpp>
+
+namespace bitonic_sort::test {
+
+inline static std::default_random_engine generator(std::time(0));
+inline static std::uniform_real_distribution<float> floatDist(-100, 100);
+inline static std::uniform_real_distribution<double> doubleDist(-100, 100);
+inline static std::uniform_int_distribution<int> intDist(-10000000, 10000000);
+
+inline auto randomNumber = []<typename T>() -> T {
+    if constexpr(std::is_same_v<T, double>) {
+        static auto generate = std::bind(doubleDist, generator);
+        return generate();
+    }    
+    else if constexpr(std::is_same_v<T, float>) {
+        static auto generate = std::bind(floatDist, generator);
+        return generate();
+    }
+    else if constexpr(std::is_same_v<T, int>) {
+        static auto generate = std::bind(intDist, generator);
+        return generate();
+    } else {
+        //static_assert(false, "Not implemented for selected type.");
+    }
+};
+
 
 template<typename T>
 struct SimdReg;
@@ -78,8 +105,20 @@ void runRegisterSortTest(Reg& reg, Regs&... regs) {
     auto regArraySolution = regToArray(reg, regs...);
     std::sort(regArraySolution.begin(), regArraySolution.end());
 
-    BITONIC_SORT::bitonic_sort(reg, regs...);
+    bitonic_sort::sort(reg, regs...);
     auto regArrayToCheck = regToArray(reg, regs...);
 
     EXPECT_THAT(regArrayToCheck, ::testing::ContainerEq(regArraySolution));
+}
+
+template<typename T>
+std::vector<T> getRandomVector(std::size_t size){
+    std::vector<T> vec;
+    vec.reserve(size);
+    for(std::size_t i=0; i<size; i++) {
+        vec.push_back(randomNumber.template operator()<T>());
+    }
+    return vec;
+}
+
 }

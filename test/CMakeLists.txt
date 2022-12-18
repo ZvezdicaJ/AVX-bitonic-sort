@@ -1,4 +1,5 @@
 add_executable(bitonic_sort_test
+    bitonic_sort_float_test.cpp
     bitonic_sort_double_test.cpp
 )
 
