@@ -300,13 +300,10 @@ void lane_crossing_compare(double *arr, unsigned start, unsigned end, unsigned l
     }
     unsigned length = end - start + 1;
     if (length == 4) {
-        // this is the ending case do single vector permutations
         __m256d reg = _mm256_loadu_pd(arr + start);
-
         permute_and_compare<0b01001110>(reg);
         shuffle_and_compare<0b0101>(reg);
         _mm256_storeu_pd(arr + start, reg);
-
         return;
     }
     double *p = arr + start;

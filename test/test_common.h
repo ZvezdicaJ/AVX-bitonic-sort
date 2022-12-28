@@ -66,7 +66,7 @@ struct SimdReg<__m256i> {
 
 
 template<typename Type>
-using SimdReg_t = SimdReg<Type>::type;
+using SimdReg_t = typename SimdReg<Type>::type;
 
 template<typename Type>
 inline constexpr static std::size_t SimdSize = SimdReg<Type>::SimdSize;

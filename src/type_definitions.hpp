@@ -36,7 +36,7 @@ using aligned_vector =
  * non-signaling (Q for quiet?) will determine whether an exception
  * is raised if an operand contains a NaN.
  */
-#ifndef __INTEL_COMPILER
+#if !defined(__INTEL_COMPILER) && !defined(_MSC_VER)
 #define _CMP_EQ_OQ 0x00 /* Equal (ordered, non-signaling)  */
 #define _CMP_LT_OS 0x01 /* Less-than (ordered, signaling)  */
 #define _CMP_LE_OS                                                 \

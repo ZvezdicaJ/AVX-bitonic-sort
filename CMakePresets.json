@@ -13,7 +13,27 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "GTEST_PATH": "c:/libs/gtest/debug/",
-                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug"
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug",
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_CXX_FLAGS": "-mavx2"
+            }
+        },
+        {
+            "name": "DebugVS",
+            "description": "Default build using VS generator",
+            "generator": "Visual Studio 17 2022",
+            "binaryDir": "${sourceDir}/build/debugVS",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "GTEST_PATH": "c:/libs/gtest/debug/",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug",
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_CXX_FLAGS": "/arch:AVX2 /EHa",
+                "VERBOSE": "ON"
             }
         },
         {
@@ -28,7 +48,9 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "GTEST_PATH": "c:/libs/gtest/release/",
-                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded",
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_CXX_FLAGS": "-mavx2"
             }
         }
     ]

@@ -1,26 +1,20 @@
 #include "test_common.h"
 
 #include <array>
-#include <bitonic_sort.hpp>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
+#include <span>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
 #include <immintrin.h>
-#include <span>
+
 #include <type_definitions.hpp>
+#include <bitonic_sort.hpp>
 
 namespace bitonic_sort::test {
-
-TEST(BITONIC_SORT, AVX_SINGLE_REG_DOUBLE) {
-    std::array registers = {_mm256_setr_pd(0, 1, 2, 3), _mm256_setr_pd(-10, 3, 6, -12),
-                            _mm256_setr_pd(5, 3, 6, 48)};
-
-    for (auto &reg : registers) {
-        runRegisterSortTest(reg);
-    }
-}
 
 TEST(BITONIC_SORT, AVX_SINGLE_REG_DOUBLE_RANDOM) {
     for (int i = 0; i < 10; i++) {

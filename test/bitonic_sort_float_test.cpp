@@ -12,16 +12,6 @@
 
 namespace bitonic_sort::test {
 
-TEST(bitonic_sort, AVX_SINGLE_REG_FLOAT) {
-    std::array registers = {_mm256_setr_ps(0, 1, 2, 3, 9, 6, 4, 2),
-                            _mm256_setr_ps(-10, 3, 6, -12, -13, -9, -8, 1),
-                            _mm256_setr_ps(5, 3, 6, 48, 27, 897, -902, -1001)};
-
-    for (auto &reg : registers) {
-        runRegisterSortTest(reg);
-    }
-}
-
 TEST(bitonic_sort, AVX_SINGLE_REG_FLOAT_RANDOM) {
     for (int i = 0; i < 10; i++) {
         auto randomVec = getRandomVector<float>(8);
@@ -166,7 +156,7 @@ TEST(SORT, TEST_SORT_FLOAT_VECTOR_ALL_CASES) {
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
-    /*for (std::uint32_t size = 1000; size < 5000; size++) {
+    for (std::uint32_t size = 1000; size < 3000; size++) {
 
         std::vector<float> vec1 = getRandomVector<float>(size);
         std::vector<float> vec2 = vec1;
@@ -178,6 +168,6 @@ TEST(SORT, TEST_SORT_FLOAT_VECTOR_ALL_CASES) {
         std::sort(vec2.begin() + startAt, vec2.end());
 
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
-    }*/
+    }
 }
 } // namespace bitonic_sort::test
