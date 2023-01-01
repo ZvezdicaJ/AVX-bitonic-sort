@@ -1,0 +1,29 @@
+name: "install-packages"
+description: "Install all required packages"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache LLVM and Clang
+      id: cache_llvm
+      uses: actions/cache@v2
+      with:
+        path: |
+          C:/Program Files/LLVM
+          ./llvm
+        key: llvm-15.0.6
+
+    - name: Install LLVM and Clang
+      id: install_llvm
+      uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: "15.0.6"
+        cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+
+    - if: runner.os == 'Linux'
+      name: Install gtest manually
+      run: sudo apt-get install libgtest-dev libgmock-dev
+      shell: bash
+
+    #- if: runner.os == 'Windows'
+    # to be defined
