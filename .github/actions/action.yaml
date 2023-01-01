@@ -4,6 +4,13 @@ description: "Install all required packages"
 runs:
   using: "composite"
   steps:
+    # Setup ninja.
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@master
+      with:
+        version: 1.11.0
+
+    # Setup llvm.
     - name: Cache LLVM and Clang
       id: cache_llvm
       uses: actions/cache@v2
@@ -13,6 +20,7 @@ runs:
           ./llvm
         key: llvm-15.0.6
 
+    # Setup clang and llvm.
     - name: Install LLVM and Clang
       id: install_llvm
       uses: KyleMayes/install-llvm-action@v1
@@ -20,6 +28,7 @@ runs:
         version: "15.0.6"
         cached: ${{ steps.cache-llvm.outputs.cache-hit }}
 
+    # If on linux, use apt-get to install gtest and gmock.
     - if: runner.os == 'Linux'
       name: Install gtest manually
       run: sudo apt-get install libgtest-dev libgmock-dev
