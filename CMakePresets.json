@@ -5,7 +5,7 @@
             "name": "Debug",
             "description": "Default build using Ninja generator",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/debug",
+            "binaryDir": "${sourceDir}/build/Debug",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
@@ -22,7 +22,7 @@
             "name": "DebugVS",
             "description": "Default build using VS generator",
             "generator": "Visual Studio 17 2022",
-            "binaryDir": "${sourceDir}/build/debugVS",
+            "binaryDir": "${sourceDir}/build/DebugVS",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
@@ -40,7 +40,7 @@
             "name": "Release",
             "description": "Default build using Ninja generator",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/release",
+            "binaryDir": "${sourceDir}/build/Release",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
