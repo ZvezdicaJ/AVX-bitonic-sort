@@ -102,6 +102,71 @@ void print_aligned_vector(aligned_vector<float> vec, std::string str) {
 ///////////////////////////////////////////////////////
 
 /**
+ * @brief The function accepts two already sorted  __m256 vectors
+ * and sorts them.
+ * @param reg1 upper vector of numbers - at the end it contains
+ * larger values, the largest value is in the upper half of register
+ * [255:192]
+ *
+ * @param reg0 lower vector of numbers - at the end it contains
+ * smaller values. The smallest value is in the lowest half of
+ * register - at [63:0]
+ *
+ */
+
+inline void bitonic_merge(__m256 &reg0, __m256 &reg1) {
+    reverseAndCompare(reg0, reg1);
+    reverseHalvesAndCompare(reg0);
+    reverseHalvesAndCompare(reg1);
+    shuffleAndCompare<0b01001110, 0b00110011>(reg0);
+    shuffleAndCompare<0b10110001, 0b01010101>(reg0);
+    shuffleAndCompare<0b01001110, 0b00110011>(reg1);
+    shuffleAndCompare<0b10110001, 0b01010101>(reg1);
+    return;
+}
+
+/**
+ * @brief The function accepts four sorted  __m256 vectors and sorts
+ * them.
+ * @param reg3 upper vector of numbers - at the end it contains
+ * larger values, the largest value is in the upper half of register
+ * [255:192]
+ * @param reg2
+ * @param reg1
+ * @param reg0 lower vector of numbers - at the end it contains
+ * smaller values. The smallest value is in the lowest half of
+ * register - at [63:0]
+ *
+ */
+inline void bitonic_merge(__m256 &reg0, __m256 &reg1, __m256 &reg2, __m256 &reg3) {
+    reverseAndCompare(reg0, reg3);
+    reverseAndCompare(reg1, reg2);
+    // sort full width
+    computeMinMax(reg1, reg3);
+    computeMinMax(reg0, reg2);
+
+    computeMinMax(reg0, reg1);
+    computeMinMax(reg2, reg3);
+
+    reverseHalvesAndCompare(reg0);
+    reverseHalvesAndCompare(reg1);
+    reverseHalvesAndCompare(reg2);
+    reverseHalvesAndCompare(reg3);
+
+    shuffleAndCompare<0b01001110, 0b00110011>(reg0);
+    shuffleAndCompare<0b01001110, 0b00110011>(reg1);
+    shuffleAndCompare<0b01001110, 0b00110011>(reg2);
+    shuffleAndCompare<0b01001110, 0b00110011>(reg3);
+
+    shuffleAndCompare<0b10110001, 0b01010101>(reg0);
+    shuffleAndCompare<0b10110001, 0b01010101>(reg1);
+    shuffleAndCompare<0b10110001, 0b01010101>(reg2);
+    shuffleAndCompare<0b10110001, 0b01010101>(reg3);
+}
+
+
+
+/**
  * @brief function merges ordered arrays
  * @param arrayA pointer to the start of the array
  * @param startA index of the first element/vector to be loaded
