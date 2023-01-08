@@ -200,7 +200,6 @@ inline void laneCrossingCompare2N(InternalSortParams const &params, std::uint32_
 inline void compareFullLength8N(InternalSortParams const &params) {
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
-    assert(params.span.size() > 0);
     std::size_t const &maxIdx = params.span.size() - 1;
 
     std::size_t length = lastIdx - firstIdx + 1;
@@ -487,7 +486,7 @@ void sort_2n(std::span<float> span) {
  */
 void sort_8n(std::span<float> span) {
 
-    float *array = span.data();
+    float *p = span.data();
     std::size_t num_to_sort = span.size();
 
     //    unsigned full_length = end - start + 1; // number of
@@ -496,35 +495,35 @@ void sort_8n(std::span<float> span) {
     int pow2 = (int)std::ceil(std::log2f(num_to_sort));
     int imaginary_length = (int)std::pow(2, pow2);
 
-    std::size_t last_index = end - 7; // last index to be loaded
-    assert((num_to_sort >= 0 && (num_to_sort % 8) == 0) &&
-           "The array to be sorted is not a multiples of 8!");
+    assert((num_to_sort % 8) == 0 &&
+           "The array to be sorted does not have the size that is a multiple of 8!");
 
     if (num_to_sort == 8) {
-        __m256 vec = _mm256_loadu_ps(array);
+        __m256 vec = _mm256_loadu_ps(p);
         sort(vec);
-        _mm256_storeu_ps(array, vec);
+        _mm256_storeu_ps(p, vec);
     } else if (num_to_sort == 16) {
-        __m256 vec1 = _mm256_loadu_ps(array);
-        __m256 vec2 = _mm256_loadu_ps(array + 8);
+        auto p2 = span.data() + 8;
+        __m256 vec1 = _mm256_loadu_ps(p);
+        __m256 vec2 = _mm256_loadu_ps(p2);
         sort(vec1, vec2);
-        _mm256_storeu_ps(array, vec1);
-        _mm256_storeu_ps(array + 8, vec2);
+        _mm256_storeu_ps(p, vec1);
+        _mm256_storeu_ps(p2, vec2);
     } else if (num_to_sort == 32) {
-        __m256 vec1 = _mm256_loadu_ps(array);
-        __m256 vec2 = _mm256_loadu_ps(array + 8);
-        __m256 vec3 = _mm256_loadu_ps(array + 16);
-        __m256 vec4 = _mm256_loadu_ps(array + 24);
+        __m256 vec1 = _mm256_loadu_ps(p);
+        __m256 vec2 = _mm256_loadu_ps(p + 8);
+        __m256 vec3 = _mm256_loadu_ps(p + 16);
+        __m256 vec4 = _mm256_loadu_ps(p + 24);
         sort(vec1, vec2, vec3, vec4);
-        _mm256_storeu_ps(array, vec1);
-        _mm256_storeu_ps(array + 8, vec2);
-        _mm256_storeu_ps(array + 16, vec3);
-        _mm256_storeu_ps(array + 24, vec4);
+        _mm256_storeu_ps(p, vec1);
+        _mm256_storeu_ps(p + 8, vec2);
+        _mm256_storeu_ps(p + 16, vec3);
+        _mm256_storeu_ps(p + 24, vec4);
     } else {
         for (std::size_t i = 0; i < end; i += 8) {
-            __m256 vec1 = _mm256_loadu_ps(array + i);
+            __m256 vec1 = _mm256_loadu_ps(p + i);
             sort(vec1);
-            _mm256_storeu_ps(array + i, vec1);
+            _mm256_storeu_ps(p + i, vec1);
         }
         // outer loop
         // len is number of floats in length to be compared
@@ -553,7 +552,6 @@ inline void compareFullLength(InternalSortParams const &params) {
 
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
-    assert(params.span.size() > 0);
     std::size_t const &maxIdx = params.span.size() - 1;
 
     assert(lastIdx >= firstIdx);
@@ -664,14 +662,6 @@ void laneCrossingCompare(InternalSortParams const &params, std::uint32_t depth) 
             _mm256_storeu_ps(p2, reg1);
     }
 
-    static std::ofstream spanOutput("C:/Users/Jure/Programming/laneCrossingCompare.txt");
-
-    spanOutput << firstIdx << " " << lastIdx << "    ";
-    for(auto val: params.span) {
-        spanOutput << " " << val; 
-    }
-    spanOutput << std::endl;
-
     laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
     laneCrossingCompare({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
@@ -766,14 +756,6 @@ void laneCrossingCompareNew(InternalSortParams const &params, std::uint32_t dept
         _mm256_storeu_ps(p1, reg1);
         _mm256_maskstore_ps(p2, mask, reg2);
     }
-
-/*    static std::ofstream spanOutput("C:/Users/Jure/Programming/laneCrossingCompareNew.txt");
-
-    spanOutput << firstIdx << " " << lastIdx << "    ";
-    for(auto val: params.span) {
-        spanOutput << " " << val; 
-    }
-    spanOutput << std::endl;*/
     
     laneCrossingCompareNew({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
     laneCrossingCompareNew({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
@@ -809,7 +791,6 @@ void sort(std::span<float> span) {
     } else {
         std::size_t log2 = std::size_t(std::ceil(std::log2f(numToSort)));
         std::size_t maxSegmentLength = std::size_t(std::pow(2, log2));
-        std::uint32_t last_index = end;
 
         for (unsigned i = 0; i <= end - 7; i += 8) {
             __m256 vec1 = _mm256_loadu_ps(array + i);
