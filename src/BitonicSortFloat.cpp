@@ -8,6 +8,7 @@
 #include <iostream>
 #include <span>
 #include <vector>
+#include <fstream>
 
 namespace bitonic_sort {
 namespace {
@@ -19,8 +20,8 @@ struct alignas(32) RegMask {
 
 struct InternalSortParams {
     std::span<float> span;
-    std::uint32_t firstIdx;
-    std::uint32_t lastIdx;
+    std::size_t firstIdx;
+    std::size_t lastIdx;
 };
 
 RegMask maskload(std::span<float const> const &span) {
@@ -145,12 +146,12 @@ void computeMinMax(__m256 &reg0, __m256 &reg1) {
 
 inline void compareFullLength2N(InternalSortParams const& params) {
 
-    std::uint32_t const &firstIdx = params.firstIdx;
-    std::uint32_t const &lastIdx = params.lastIdx;
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
     assert(lastIdx > firstIdx);
-    std::uint32_t length = lastIdx - firstIdx + 1;
-    unsigned half = length / 2;
-    for (int i = 0; i < half; i += 8) {
+    std::size_t length = lastIdx - firstIdx + 1;
+    std::size_t half = length / 2;
+    for (std::size_t i = 0; i < half; i += 8) {
         float *p1 = params.span.data() + firstIdx + i;
         float *p2 = params.span.data() + lastIdx - 7 - i;
         { // reverse lover half and compare to upper half
@@ -164,9 +165,9 @@ inline void compareFullLength2N(InternalSortParams const& params) {
 }
 
 inline void laneCrossingCompare2N(InternalSortParams const &params, std::uint32_t depth) {
-    std::uint32_t const &firstIdx = params.firstIdx;
-    std::uint32_t const &lastIdx = params.lastIdx;
-    unsigned length = lastIdx - firstIdx + 1;
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t length = lastIdx - firstIdx + 1;
     if (length == 8) {
         __m256 reg = _mm256_loadu_ps(params.span.data() + firstIdx);
         // this is the ending case do single vector permutations
@@ -177,7 +178,7 @@ inline void laneCrossingCompare2N(InternalSortParams const &params, std::uint32_
         return;
     }
     float *p = params.span.data() + firstIdx;
-    for (unsigned i = 0; i < length / 2; i += 8) {
+    for (std::size_t i = 0; i < length / 2; i += 8) {
         {
             float *p1 = p + i;
             float *p2 = p + length / 2 + i;
@@ -197,14 +198,14 @@ inline void laneCrossingCompare2N(InternalSortParams const &params, std::uint32_
 };
 
 inline void compareFullLength8N(InternalSortParams const &params) {
-    std::uint32_t const &firstIdx = params.firstIdx;
-    std::uint32_t const &lastIdx = params.lastIdx;
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
     assert(params.span.size() > 0);
-    std::uint32_t const &maxIdx = params.span.size() - 1;
+    std::size_t const &maxIdx = params.span.size() - 1;
 
-    unsigned length = lastIdx - firstIdx + 1;
-    unsigned patHalfIdx = length / 2; // half je index prvega cez polovico
-    for (int toLoadIdx = patHalfIdx - 8; toLoadIdx >= 0; toLoadIdx -= 8) {
+    std::size_t length = lastIdx - firstIdx + 1;
+    std::size_t patHalfIdx = length / 2; // half je index prvega cez polovico
+    for (std::int32_t toLoadIdx = patHalfIdx - 8; toLoadIdx >= 0; toLoadIdx -= 8) {
         if (lastIdx - 7 - toLoadIdx > maxIdx)
             break;
         float *p1 = params.span.data() + firstIdx + toLoadIdx;
@@ -223,15 +224,15 @@ inline void compareFullLength8N(InternalSortParams const &params) {
 
 inline void laneCrossingCompare8N(InternalSortParams const &params, std::uint32_t depth) {
 
-    std::uint32_t const &firstIdx = params.firstIdx;
-    std::uint32_t const &lastIdx = params.lastIdx;
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
     assert(params.span.size() > 0);
-    std::uint32_t const &maxIdx = params.span.size() - 1;
+    std::size_t const &maxIdx = params.span.size() - 1;
 
     if (firstIdx > maxIdx) {
         return;
     }
-    unsigned length = lastIdx - firstIdx + 1;
+    std::size_t length = lastIdx - firstIdx + 1;
     if (length == 8) {
         __m256 reg = _mm256_loadu_ps(params.span.data() + firstIdx);
         // this is the ending case do single vector permutations
@@ -243,7 +244,7 @@ inline void laneCrossingCompare8N(InternalSortParams const &params, std::uint32_
     }
     float *p = params.span.data() + firstIdx;
     // for (unsigned i = 0; i < length / 2; i += 8) {
-    for (unsigned i = 0; i < length / 2; i += 8) {
+    for (std::size_t i = 0; i < length / 2; i += 8) {
         if (firstIdx + length / 2 + i > maxIdx)
             break;
         {
@@ -487,15 +488,15 @@ void sort_2n(std::span<float> span) {
 void sort_8n(std::span<float> span) {
 
     float *array = span.data();
-    unsigned num_to_sort = span.size();
+    std::size_t num_to_sort = span.size();
 
     //    unsigned full_length = end - start + 1; // number of
     //    double numbers to sort
-    unsigned end = num_to_sort - 1;
+    std::size_t end = num_to_sort - 1;
     int pow2 = (int)std::ceil(std::log2f(num_to_sort));
     int imaginary_length = (int)std::pow(2, pow2);
 
-    unsigned last_index = end - 7; // last index to be loaded
+    std::size_t last_index = end - 7; // last index to be loaded
     assert((num_to_sort >= 0 && (num_to_sort % 8) == 0) &&
            "The array to be sorted is not a multiples of 8!");
 
@@ -509,7 +510,6 @@ void sort_8n(std::span<float> span) {
         sort(vec1, vec2);
         _mm256_storeu_ps(array, vec1);
         _mm256_storeu_ps(array + 8, vec2);
-
     } else if (num_to_sort == 32) {
         __m256 vec1 = _mm256_loadu_ps(array);
         __m256 vec2 = _mm256_loadu_ps(array + 8);
@@ -520,9 +520,8 @@ void sort_8n(std::span<float> span) {
         _mm256_storeu_ps(array + 8, vec2);
         _mm256_storeu_ps(array + 16, vec3);
         _mm256_storeu_ps(array + 24, vec4);
-
     } else {
-        for (unsigned i = 0; i < end; i += 8) {
+        for (std::size_t i = 0; i < end; i += 8) {
             __m256 vec1 = _mm256_loadu_ps(array + i);
             sort(vec1);
             _mm256_storeu_ps(array + i, vec1);
@@ -530,9 +529,9 @@ void sort_8n(std::span<float> span) {
         // outer loop
         // len is number of floats in length to be compared
         // each step increases this length by factor of 2.
-        for (unsigned len = 16; len <= imaginary_length; len *= 2) {
+        for (std::size_t len = 16; len <= imaginary_length; len *= 2) {
             // inner loop goes over all subdivisions
-            for (unsigned n = 0; n < imaginary_length; n += len) {
+            for (std::size_t n = 0; n < imaginary_length; n += len) {
                 compareFullLength8N({span, n, n + len - 1});
                 laneCrossingCompare8N({span, n, n + len - 1}, 0);
             }
@@ -550,21 +549,24 @@ void sort_8n(std::span<float> span) {
  * @param start index of the first element to be sorted
  * @param end index of the last element to be sorted
  */
-inline void compare_full_length_all_cases(float *arr, unsigned firstIdx, unsigned lastIdx,
-                                          unsigned maxIdx) {
+inline void compareFullLength(InternalSortParams const &params) {
+
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    assert(params.span.size() > 0);
+    std::size_t const &maxIdx = params.span.size() - 1;
 
     assert(lastIdx >= firstIdx);
-    std::uint32_t length = lastIdx - firstIdx + 1;
-    std::uint32_t half = length / 2; // half je index prvega cez polovico
-    for (int i = half - 8; i >= 0; i -= 8) {
-        // index of last vector to load
+    std::size_t length = lastIdx - firstIdx + 1;
+    std::size_t half = (length + 1) / 2; // half je index prvega cez polovico
+    for (std::int32_t i = half - 8; i >= 0; i -= 8) {
         std::int32_t last_vec_to_load = lastIdx - 7 - i;
         std::int32_t diff = maxIdx - last_vec_to_load;
         if (diff < 0)
             return;
         // define pointers to the start of vectors to load
-        float *p1 = arr + firstIdx + i;
-        float *p2 = arr + last_vec_to_load;
+        float *p1 = params.span.data() + firstIdx + i;
+        float *p2 = params.span.data() + last_vec_to_load;
         auto [vec2, mask] = [&]() {
             if (diff < 7)
                 return maskload(std::span<float const>{p2, std::size_t(diff + 1)});
@@ -595,19 +597,23 @@ inline void compare_full_length_all_cases(float *arr, unsigned firstIdx, unsigne
  * @param end index of the last element to be sorted
  * @param depth a parameter to follow the depth of recursion
  */
-void lane_crossing_compare_all_cases(float *arr, unsigned firstIdx, unsigned lastIdx,
-                                     unsigned maxIdx, unsigned depth) {
+void laneCrossingCompare(InternalSortParams const &params, std::uint32_t depth) {
+
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t const &maxIdx = params.span.size() - 1;
+
     if (firstIdx > maxIdx) {
         return;
     }
-    unsigned length = lastIdx - firstIdx + 1;
+    std::size_t length = lastIdx - firstIdx + 1;
     if (length == 8) {
-        int diff = maxIdx - firstIdx;
+        std::int64_t diff = maxIdx - firstIdx;
         if (diff < 1) {
             return;
         }
 
-        auto p = arr + firstIdx;
+        auto p = params.span.data() + firstIdx;
         auto [reg, mask] = [&]() {
             if (diff < 7)
                 return maskload(std::span<float const>{p, std::size_t(diff + 1)});
@@ -625,13 +631,18 @@ void lane_crossing_compare_all_cases(float *arr, unsigned firstIdx, unsigned las
         return;
     }
 
-    auto p = arr + firstIdx;
-    for (std::uint32_t i = 0; i < length / 2; i += 8) {
-        std::int32_t diff = maxIdx - (firstIdx + length / 2 + i);
+    auto p = params.span.data() + firstIdx;
+    // This should be (length + 1) / 2, but not adding 1 does not change anything since
+    // the length is always a multiple of 8.
+    assert(length % 8 == 0);
+    std::size_t halfLength = length / 2;
+
+    for (std::uint32_t i = 0; i < halfLength; i += 8) {
+        std::int32_t diff = maxIdx - (firstIdx + halfLength + i);
         if (diff < 0)
             break;
 
-        float *p2 = p + length / 2 + i;
+        float *p2 = p + halfLength + i;
         auto [reg1, mask] = [&]() {
             if (diff < 7)
                 return maskload(std::span<float const>{p2, std::size_t(diff + 1)});
@@ -652,10 +663,120 @@ void lane_crossing_compare_all_cases(float *arr, unsigned firstIdx, unsigned las
         else
             _mm256_storeu_ps(p2, reg1);
     }
-    lane_crossing_compare_all_cases(arr, firstIdx, (firstIdx + lastIdx) / 2, maxIdx,
-                                    depth + 1);
-    lane_crossing_compare_all_cases(arr, (firstIdx + lastIdx) / 2 + 1, lastIdx, maxIdx,
-                                    depth + 1);
+
+    static std::ofstream spanOutput("C:/Users/Jure/Programming/laneCrossingCompare.txt");
+
+    spanOutput << firstIdx << " " << lastIdx << "    ";
+    for(auto val: params.span) {
+        spanOutput << " " << val; 
+    }
+    spanOutput << std::endl;
+
+    laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompare({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
+};
+
+
+/** @brief compared vectors from top and bottom of array and then
+ * gradually compare inner vectors.
+ * @param arr pointer to the array to be sorted
+ * @param start index of the first element to be sorted
+ * @param end index of the last element to be sorted
+ * @param depth a parameter to follow the depth of recursion
+ */
+void laneCrossingCompareNew(InternalSortParams const &params, std::uint32_t depth) {
+
+
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t const &maxIdx = params.span.size() - 1;
+
+    if (firstIdx > maxIdx) {
+        return;
+    }
+    std::size_t length = lastIdx - firstIdx + 1;
+    if (length == 8) {
+        int diff = maxIdx - firstIdx;
+        if (diff < 1) {
+            return;
+        }
+
+        auto p = params.span.data() + firstIdx;
+        auto [reg, mask] = [&]() {
+            if (diff < 7)
+                return maskload(std::span<float const>{p, std::size_t(diff + 1)});
+            else
+                return RegMask{_mm256_loadu_ps(p), __m256i{}};
+        }();
+
+        reverseHalvesAndCompare(reg);
+        shuffleAndCompare<0b01001110, 0b00110011>(reg);
+        shuffleAndCompare<0b10110001, 0b01010101>(reg);
+        if (diff < 7)
+            _mm256_maskstore_ps(p, mask, reg);
+        else
+            _mm256_storeu_ps(p, reg);
+        return;
+    }
+
+    auto minMax = [](__m256 &reg0, __m256 &reg1) {
+        __m256 min = _mm256_min_ps(reg1, reg0);
+        reg1 = _mm256_max_ps(reg1, reg0);
+        reg0 = min;
+    };
+
+
+    // This should be (length + 1) / 2, but not adding 1 does not change anything since
+    // the length is always a multiple of 8.
+    assert(length % 8 == 0);
+    std::size_t halfLength = (length) / 2;
+    std::uint32_t globalSecondHalfFirstIdx = firstIdx + halfLength;
+
+    std::size_t numPairsToCompare = [&]() -> std::size_t {
+        if(maxIdx >= lastIdx) {
+            return halfLength;
+        }
+        assert(lastIdx > maxIdx);
+        auto segmentExcess = lastIdx - maxIdx;
+        if(segmentExcess >= halfLength){
+            return 0;
+        }
+        return halfLength - segmentExcess;
+    }();
+
+    float *p1 = params.span.data() + firstIdx;
+    float *p2 = params.span.data() + globalSecondHalfFirstIdx;
+
+    std::uint32_t numPairsCompared = 7;
+    for (; numPairsCompared < numPairsToCompare; numPairsCompared+=8) {
+        __m256 reg1 = _mm256_loadu_ps(p1);
+        __m256 reg2 = _mm256_loadu_ps(p2);
+        minMax(reg1, reg2);
+        _mm256_storeu_ps(p1, reg1);
+        _mm256_storeu_ps(p2, reg2);
+        p1 += 8;
+        p2 += 8;
+    }
+
+    std::uint32_t leftToLoad = numPairsToCompare - (numPairsCompared - 7);
+    if(leftToLoad != 0) {
+        __m256 reg1 = _mm256_loadu_ps(p1);
+        auto [reg2, mask] = maskload({p2, leftToLoad});
+        minMax(reg1, reg2);
+        _mm256_storeu_ps(p1, reg1);
+        _mm256_maskstore_ps(p2, mask, reg2);
+    }
+
+/*    static std::ofstream spanOutput("C:/Users/Jure/Programming/laneCrossingCompareNew.txt");
+
+    spanOutput << firstIdx << " " << lastIdx << "    ";
+    for(auto val: params.span) {
+        spanOutput << " " << val; 
+    }
+    spanOutput << std::endl;*/
+    
+    laneCrossingCompareNew({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompareNew({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
 /**
@@ -665,7 +786,7 @@ void lane_crossing_compare_all_cases(float *arr, unsigned firstIdx, unsigned las
  */
 void sort(std::span<float> span) {
 
-    float *array = span.data();
+        float *array = span.data();
     std::size_t numToSort = span.size();
     unsigned end = numToSort - 1;
     if (numToSort <= 1)
@@ -712,9 +833,8 @@ void sort(std::span<float> span) {
         std::size_t segmentLength = 16;
         for (std::uint32_t i = 0; i <= log2 - 4; i++) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
-                compare_full_length_all_cases(array, n, n + segmentLength - 1, last_index);
-                lane_crossing_compare_all_cases(array, n, n + segmentLength - 1, last_index,
-                                                0);
+                compareFullLength({span, n, n + segmentLength - 1});
+                laneCrossingCompareNew({span, n, n + segmentLength - 1}, 0U);
             }
             segmentLength *= 2;
         }
