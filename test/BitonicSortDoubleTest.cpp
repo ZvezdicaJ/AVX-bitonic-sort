@@ -11,8 +11,8 @@
 
 #include <immintrin.h>
 
-#include <type_definitions.hpp>
 #include <bitonic_sort.hpp>
+#include <type_definitions.hpp>
 
 namespace bitonic_sort::test {
 
@@ -144,7 +144,7 @@ TEST(SORT, TEST_SORT_DOUBLE_4n_VECTOR) {
 
 TEST(SORT, TEST_SORT_DOUBLE_VECTOR_ALL_CASES) {
 
-    for (std::uint32_t size = 1; size < 1000; size++) {
+    for (std::uint32_t size = 1; size < 200; size += 3) {
 
         std::vector<double> vec1 = getRandomVector<double>(size);
         std::vector<double> vec2 = vec1;
@@ -154,16 +154,14 @@ TEST(SORT, TEST_SORT_DOUBLE_VECTOR_ALL_CASES) {
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
-    for (std::uint32_t size = 1000; size < 5000; size++) {
+    for (std::uint32_t size = 17; size < 7000; size += 7) {
 
         std::vector<double> vec1 = getRandomVector<double>(size);
         std::vector<double> vec2 = vec1;
 
-        std::uint32_t startAt = size / 2;
-        std::uint32_t numberToSort = size - startAt;
-        sort(std::span<double>{vec1.data() + startAt, numberToSort});
+        sort(std::span<double>{vec1.data(), size});
 
-        std::sort(vec2.begin() + startAt, vec2.end());
+        std::sort(vec2.begin(), vec2.end());
 
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }

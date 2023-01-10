@@ -4,11 +4,11 @@
 #include <bitonic_sort.hpp>
 #include <chrono>
 #include <cstdint>
-#include <numeric>
 #include <ctime>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <immintrin.h>
+#include <numeric>
 #include <type_definitions.hpp>
 
 namespace bitonic_sort::test {
@@ -53,7 +53,8 @@ TEST(SORT, BITONIC_AVX_SORT_4REG_FLOAT) {
     {
         __m256 reg0 = _mm256_setr_ps(-1, -2, 18, 29, 33, -29, -38, -43);
         __m256 reg1 = _mm256_setr_ps(500, -80, 2, -5, -26, -45, -66, 99);
-        __m256 reg2 = _mm256_setr_ps(-10, 22, 180, -2900, -3003, -9999, 9999, 0);
+        __m256 reg2 =
+            _mm256_setr_ps(-10, 22, 180, -2900, -3003, -9999, 9999, 0);
         __m256 reg3 = _mm256_setr_ps(38, -120, 25, -17, -8, 8, -99, 99);
         runRegisterSortTest(reg0, reg1, reg2, reg3);
     }
@@ -147,7 +148,7 @@ TEST(SORT, TEST_SORT_FLOAT_8n_VECTOR) {
 
 TEST(SORT, TEST_SORT_FLOAT_VECTOR_ALL_CASES) {
 
-   for (std::uint32_t size = 1; size < 20; size++) {
+    for (std::uint32_t size = 1; size < 200; size += 3) {
 
         std::vector<float> vec1 = getRandomVector<float>(size);
         std::vector<float> vec2 = vec1;
@@ -157,7 +158,7 @@ TEST(SORT, TEST_SORT_FLOAT_VECTOR_ALL_CASES) {
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
-    for (std::uint32_t size = 17; size < 7000; size +=7) {
+    for (std::uint32_t size = 17; size < 7000; size += 7) {
 
         std::vector<float> vec1 = getRandomVector<float>(size);
         std::vector<float> vec2 = vec1;
@@ -169,15 +170,15 @@ TEST(SORT, TEST_SORT_FLOAT_VECTOR_ALL_CASES) {
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
-        constexpr std::uint32_t size = 101;
-        std::vector<float> vec1(size);
-        std::iota(vec1.rbegin(), vec1.rend(), 1);
-        std::vector<float> vec2 = vec1;
+    constexpr std::uint32_t size = 101;
+    std::vector<float> vec1(size);
+    std::iota(vec1.rbegin(), vec1.rend(), 1);
+    std::vector<float> vec2 = vec1;
 
-        bitonic_sort::sort(std::span<float>{vec1.data(), size});
+    bitonic_sort::sort(std::span<float>{vec1.data(), size});
 
-        std::sort(vec2.begin(), vec2.end());
+    std::sort(vec2.begin(), vec2.end());
 
-        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
+    EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
 }
 } // namespace bitonic_sort::test
