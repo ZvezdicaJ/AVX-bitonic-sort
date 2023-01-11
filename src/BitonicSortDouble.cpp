@@ -130,7 +130,7 @@ void laneCrossingCompare_2n(InternalSortParams<double> params,
         return;
     }
     double *p = params.span.data() + firstIdx;
-    for (unsigned i = 0; i < length / 2; i += 4) {
+    for (std::size_t i = 0; i < length / 2; i += 4) {
         {
             double *p1 = p + i;
             double *p2 = p + length / 2 + i;
@@ -154,53 +154,67 @@ void laneCrossingCompare_2n(InternalSortParams<double> params,
                            depth + 1);
 };
 
-void compareFullLength_4n(double *arr, unsigned start, unsigned end,
-                          unsigned last_index) {
+void compareFullLength_4n(InternalSortParams<double> const &params) {
 
-    unsigned length = end - start + 1;
-    unsigned half = length / 2; // half je index prvega cez polovico
-    for (int i = half - 4; i >= 0; i -= 4) {
-        if ((end - 3 - i > last_index))
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t const &maxIdx = params.span.size() - 1;
+
+    std::size_t const length = lastIdx - firstIdx + 1;
+    std::size_t pastHalfIdx = length / 2; // half je index prvega cez polovico
+    for (std::int32_t toLoadIdx = pastHalfIdx - 4; toLoadIdx >= 0;
+         toLoadIdx -= 4) {
+        if ((lastIdx - 3 - toLoadIdx > maxIdx))
             break;
-        double *p1 = arr + start + i;
-        double *p2 = arr + end - 3 - i;
-        {
-            __m256d vec1 = _mm256_loadu_pd(p1);
-            __m256d vec2 = _mm256_loadu_pd(p2);
-            // reverse one of registers register reg0
-            __m256d reverse = _mm256_permute4x64_pd(vec1, 0b00011011);
-            // register 2 vsebuje min vrednosti
-            vec1 = _mm256_min_pd(vec2, reverse);
-            vec1 = _mm256_permute4x64_pd(vec1, 0b00011011);
-            // register 1 vsebuje max vrednosti
-            vec2 = _mm256_max_pd(vec2, reverse);
-            _mm256_storeu_pd(p1, vec1);
-            _mm256_storeu_pd(p2, vec2);
-        }
+        double *p1 = params.span.data() + firstIdx + toLoadIdx;
+        double *p2 = params.span.data() + lastIdx - 3 - toLoadIdx;
+
+        assert(firstIdx + toLoadIdx + 3 <= maxIdx);
+        assert(lastIdx - toLoadIdx <= maxIdx);
+
+        __m256d vec1 = _mm256_loadu_pd(p1);
+        __m256d vec2 = _mm256_loadu_pd(p2);
+        // reverse one of registers register reg0
+        __m256d reverse = _mm256_permute4x64_pd(vec1, 0b00011011);
+        // register 2 vsebuje min vrednosti
+        vec1 = _mm256_min_pd(vec2, reverse);
+        vec1 = _mm256_permute4x64_pd(vec1, 0b00011011);
+        // register 1 vsebuje max vrednosti
+        vec2 = _mm256_max_pd(vec2, reverse);
+        _mm256_storeu_pd(p1, vec1);
+        _mm256_storeu_pd(p2, vec2);
     }
 }
 
-void laneCrossingCompare_4n(double *arr, unsigned start, unsigned end,
-                            unsigned last_index, unsigned depth) {
+void laneCrossingCompare_4n(InternalSortParams<double> const &params,
+                            std::uint32_t depth) {
 
-    if (start > last_index) {
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t const &maxIdx = params.span.size() - 1;
+
+    if (firstIdx > maxIdx) {
         return;
     }
-    unsigned length = end - start + 1;
+    std::size_t const length = lastIdx - firstIdx + 1;
+    auto p = params.span.data() + firstIdx;
+
     if (length == 4) {
-        __m256d reg = _mm256_loadu_pd(arr + start);
+        __m256d reg = _mm256_loadu_pd(p);
         permute_and_compare<0b01001110>(reg);
         shuffle_and_compare<0b0101>(reg);
-        _mm256_storeu_pd(arr + start, reg);
+        _mm256_storeu_pd(p, reg);
         return;
     }
-    double *p = arr + start;
-    for (unsigned i = 0; i < length / 2; i += 4) {
-        if (start + length / 2 + i > last_index)
+
+    for (std::size_t i = 0; i < length / 2; i += 4) {
+        if (firstIdx + length / 2 + i > maxIdx)
             break;
         {
             double *p1 = p + i;
             double *p2 = p + length / 2 + i;
+            auto maxWriteIdx = firstIdx + length / 2 + i + 3;
+            assert(maxWriteIdx <= maxIdx);
             __m256d reg0 = _mm256_loadu_pd(p1); // i-ti od začetka
             __m256d reg1 = _mm256_loadu_pd(p2); // ta je prvi čez polovico
             // register 2 vsebuje min vrednosti
@@ -212,9 +226,9 @@ void laneCrossingCompare_4n(double *arr, unsigned start, unsigned end,
             _mm256_storeu_pd(p2, reg1);
         }
     }
-    laneCrossingCompare_4n(arr, start, (start + end) / 2, last_index,
+    laneCrossingCompare_4n({params.span, firstIdx, (firstIdx + lastIdx) / 2},
                            depth + 1);
-    laneCrossingCompare_4n(arr, (start + end) / 2 + 1, end, last_index,
+    laneCrossingCompare_4n({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
                            depth + 1);
 };
 
@@ -388,7 +402,6 @@ void sort(__m256d &reg0, __m256d &reg1, __m256d &reg2, __m256d &reg3) {
 }
 
 void sort_2n(std::span<double> span) {
-
     auto p = span.data();
     auto numToSort = span.size();
 
@@ -440,15 +453,13 @@ void sort_2n(std::span<double> span) {
 }
 
 void sort_4n(std::span<double> span) {
-
     auto p = span.data();
     auto numberToSort = span.size();
 
-    unsigned const end = numberToSort - 1;
-    int pow2 = (int)std::ceil(std::log2f(numberToSort));
-    int imaginary_length = (int)std::pow(2, pow2);
-    unsigned lastIndex = end - 3; // last index to be loaded
-    assert((numberToSort >= 0 && (mod4(numberToSort) == 0)) &&
+    std::size_t pow2 = (std::size_t)std::ceil(std::log2f(numberToSort));
+    std::size_t imaginary_length = (int)std::pow(2, pow2);
+
+    assert(mod4(numberToSort) == 0 &&
            "The array to be sorted is not a multiple of 4!");
 
     if (numberToSort == 4) {
@@ -474,7 +485,7 @@ void sort_4n(std::span<double> span) {
         _mm256_storeu_pd(p + 12, vec4);
 
     } else {
-        for (unsigned i = 0; i < end; i += 4) {
+        for (unsigned i = 0; i < span.size(); i += 4) {
             __m256d vec1 = _mm256_loadu_pd(p + i);
             sort(vec1);
             _mm256_storeu_pd(p + i, vec1);
@@ -486,15 +497,15 @@ void sort_4n(std::span<double> span) {
         for (unsigned len = 8; len <= imaginary_length; len *= 2) {
             // inner loop goes over all subdivisions
             for (unsigned n = 0; n < imaginary_length; n += len) {
-                compareFullLength_4n(p, n, n + len - 1, lastIndex);
-                laneCrossingCompare_4n(p, n, n + len - 1, lastIndex, 0);
+                InternalSortParams<double> const params{span, n, n + len - 1};
+                compareFullLength_4n(params);
+                laneCrossingCompare_4n(params, 0);
             }
         }
     }
 }
 
 void sort(std::span<double> span) {
-
     if (span.size() <= 1)
         return;
 

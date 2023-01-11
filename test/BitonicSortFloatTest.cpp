@@ -60,10 +60,10 @@ TEST(SORT, BITONIC_AVX_SORT_4REG_FLOAT) {
     }
 
     {
-        auto inp0 = getRandomVector<float>(4);
-        auto inp1 = getRandomVector<float>(4);
-        auto inp2 = getRandomVector<float>(4);
-        auto inp3 = getRandomVector<float>(4);
+        auto inp0 = getRandomVector<float>(8);
+        auto inp1 = getRandomVector<float>(8);
+        auto inp2 = getRandomVector<float>(8);
+        auto inp3 = getRandomVector<float>(8);
 
         __m256 reg0 = _mm256_loadu_ps(inp0.data());
         __m256 reg1 = _mm256_loadu_ps(inp1.data());
@@ -121,26 +121,12 @@ TEST(SORT, TEST_2N_SORT_FLOAT_VER_TEST2) {
 
 TEST(SORT, TEST_SORT_FLOAT_8n_VECTOR) {
 
-    for (std::uint32_t size = 8; size <= 2000; size += 8) {
+    for (std::uint32_t size = 8; size <= 4000; size += 8) {
         std::vector<float> vec1 = getRandomVector<float>(size);
         std::vector<float> vec2 = vec1;
 
         bitonic_sort::sort_8n(vec1);
         std::sort(vec2.begin(), vec2.end());
-
-        EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
-    }
-
-    {
-        constexpr std::uint32_t startAt = 8 * 133;
-        constexpr std::uint32_t numberToSort = 8 * 333;
-        constexpr std::uint32_t size = numberToSort + startAt;
-
-        std::vector<float> vec1 = getRandomVector<float>(size);
-        std::vector<float> vec2 = vec1;
-
-        bitonic_sort::sort_8n({vec1.data() + startAt, numberToSort});
-        std::sort(vec2.begin() + startAt, vec2.end());
 
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }

@@ -191,8 +191,8 @@ inline void compareFullLength8N(InternalSortParams<float> const &params) {
     std::size_t const &maxIdx = params.span.size() - 1;
 
     std::size_t length = lastIdx - firstIdx + 1;
-    std::size_t patHalfIdx = length / 2; // half je index prvega cez polovico
-    for (std::int32_t toLoadIdx = patHalfIdx - 8; toLoadIdx >= 0;
+    std::size_t pastHalfIdx = length / 2; // half je index prvega cez polovico
+    for (std::int32_t toLoadIdx = pastHalfIdx - 8; toLoadIdx >= 0;
          toLoadIdx -= 8) {
         if (lastIdx - 7 - toLoadIdx > maxIdx)
             break;
@@ -215,32 +215,33 @@ inline void laneCrossingCompare8N(InternalSortParams<float> const &params,
 
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
-    assert(params.span.size() > 0);
     std::size_t const &maxIdx = params.span.size() - 1;
 
     if (firstIdx > maxIdx) {
         return;
     }
-    std::size_t length = lastIdx - firstIdx + 1;
+    std::size_t const length = lastIdx - firstIdx + 1;
+    float *p = params.span.data() + firstIdx;
+
     if (length == 8) {
-        __m256 reg = _mm256_loadu_ps(params.span.data() + firstIdx);
-        // this is the ending case do single vector permutations
+        __m256 reg = _mm256_loadu_ps(p);
         reverseHalvesAndCompare(reg);
         shuffleAndCompare<0b01001110, 0b00110011>(reg);
         shuffleAndCompare<0b10110001, 0b01010101>(reg);
-        _mm256_storeu_ps(params.span.data() + firstIdx, reg);
+        _mm256_storeu_ps(p, reg);
         return;
     }
-    float *p = params.span.data() + firstIdx;
-    // for (unsigned i = 0; i < length / 2; i += 8) {
+
     for (std::size_t i = 0; i < length / 2; i += 8) {
         if (firstIdx + length / 2 + i > maxIdx)
             break;
         {
             float *p1 = p + i;
             float *p2 = p + length / 2 + i;
-            __m256 reg0 = _mm256_loadu_ps(p1); // i-ti od začetka
-            __m256 reg1 = _mm256_loadu_ps(p2); // ta je prvi čez polovico
+            assert(firstIdx + length / 2 + i + 7 <= maxIdx);
+
+            __m256 reg0 = _mm256_loadu_ps(p1);
+            __m256 reg1 = _mm256_loadu_ps(p2);
             // register 2 vsebuje min vrednosti
             __m256 min = _mm256_min_ps(reg1, reg0);
             // register 1 vsebuje max vrednosti
@@ -588,7 +589,7 @@ void sort_8n(std::span<float> span) {
     std::size_t pow2 = std::size_t(std::ceil(std::log2f(numToSort)));
     std::size_t imaginary_length = std::size_t(1 << pow2);
 
-    assert((numToSort % 8) == 0 && "The array to be sorted does not have the "
+    assert(mod8(numToSort) == 0 && "The array to be sorted does not have the "
                                    "size that is a multiple of 8!");
 
     if (numToSort == 8) {
@@ -621,8 +622,9 @@ void sort_8n(std::span<float> span) {
 
         for (std::size_t len = 16; len <= imaginary_length; len *= 2) {
             for (std::size_t n = 0; n < imaginary_length; n += len) {
-                compareFullLength8N({span, n, n + len - 1});
-                laneCrossingCompare8N({span, n, n + len - 1}, 0);
+                InternalSortParams<float> const params{span, n, n + len - 1};
+                compareFullLength8N(params);
+                laneCrossingCompare8N(params, 0);
             }
         }
     }
@@ -678,8 +680,10 @@ void sort(std::span<float> span) {
         std::size_t segmentLength = 16;
         for (std::uint32_t i = 0; i <= log2 - 4; i++) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
-                compareFullLength({span, n, n + segmentLength - 1});
-                laneCrossingCompareNew({span, n, n + segmentLength - 1}, 0U);
+                InternalSortParams<float> const params{span, n,
+                                                       n + segmentLength - 1};
+                compareFullLength(params);
+                laneCrossingCompareNew(params, 0U);
             }
             segmentLength *= 2;
         }

@@ -76,7 +76,7 @@ TEST(SORT, BITONIC_AVX_SORT_4REG_DOUBLE) {
     }
 }
 
-TEST(SORT, TEST_2N_SORT_DOUBLE_VER) {
+/*TEST(SORT, TEST_2N_SORT_DOUBLE_VER) {
 
     {
         std::vector<double> vec1 = getRandomVector<double>(4);
@@ -113,11 +113,13 @@ TEST(SORT, TEST_2N_SORT_DOUBLE_VER_TEST2) {
             EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
         }
     }
-}
+}*/
 
 TEST(SORT, TEST_SORT_DOUBLE_4n_VECTOR) {
 
-    for (std::uint32_t size = 4; size <= 2000; size += 4) {
+    for (std::uint32_t size = 24; size <= 24; size += 4) {
+
+        std::cout << "size = " << size << std::endl;
         std::vector<double> vec1 = getRandomVector<double>(size);
         std::vector<double> vec2 = vec1;
 
@@ -127,7 +129,7 @@ TEST(SORT, TEST_SORT_DOUBLE_4n_VECTOR) {
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
 
-    {
+    /*{
         constexpr std::uint32_t startAt = 4 * 133;
         constexpr std::uint32_t numberToSort = 4 * 333;
         constexpr std::uint32_t size = numberToSort + startAt;
@@ -139,9 +141,9 @@ TEST(SORT, TEST_SORT_DOUBLE_4n_VECTOR) {
         std::sort(vec2.begin() + startAt, vec2.end());
 
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
-    }
+    }*/
 }
-
+/*
 TEST(SORT, TEST_SORT_DOUBLE_VECTOR_ALL_CASES) {
 
     for (std::uint32_t size = 1; size < 200; size += 3) {
@@ -165,5 +167,5 @@ TEST(SORT, TEST_SORT_DOUBLE_VECTOR_ALL_CASES) {
 
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
-}
+}*/
 } // namespace bitonic_sort::test

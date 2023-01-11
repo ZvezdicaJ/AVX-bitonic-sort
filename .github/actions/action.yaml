@@ -34,5 +34,10 @@ runs:
       run: sudo apt-get install libgtest-dev libgmock-dev
       shell: bash
 
+    - name: Install Valgrind
+      run: |
+        sudo apt install valgrind
+        echo "Valgrind installed"
+
     #- if: runner.os == 'Windows'
     # to be defined
