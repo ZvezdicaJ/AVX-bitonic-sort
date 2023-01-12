@@ -1,14 +1,16 @@
 #include "test_common.h"
 
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
 #include <array>
-#include <bitonic_sort.hpp>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 #include <immintrin.h>
 #include <numeric>
+
+#include <bitonic_sort.hpp>
 #include <type_definitions.hpp>
 
 namespace bitonic_sort::test {
@@ -134,7 +136,7 @@ TEST(SORT, TEST_SORT_FLOAT_8n_VECTOR) {
 
 TEST(SORT, TEST_SORT_FLOAT_VECTOR_ALL_CASES) {
 
-    for (std::uint32_t size = 1; size < 200; size += 3) {
+    for (std::uint32_t size = 1; size < 200; size += 1) {
 
         std::vector<float> vec1 = getRandomVector<float>(size);
         std::vector<float> vec2 = vec1;

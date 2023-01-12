@@ -268,18 +268,19 @@ inline void compareFullLength(InternalSortParams<float> const &params) {
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
     std::size_t const &maxIdx = params.span.size() - 1;
+    auto p = params.span.data();
 
     assert(lastIdx >= firstIdx);
     std::size_t length = lastIdx - firstIdx + 1;
-    std::size_t half = (length + 1) / 2; // half je index prvega cez polovico
+    std::size_t half = length / 2; // half je index prvega cez polovico
     for (std::int32_t i = half - 8; i >= 0; i -= 8) {
         std::int32_t last_vec_to_load = lastIdx - 7 - i;
-        std::int32_t diff = maxIdx - last_vec_to_load;
-        if (diff < 0)
+        if (maxIdx < last_vec_to_load)
             return;
-        // define pointers to the start of vectors to load
-        float *p1 = params.span.data() + firstIdx + i;
-        float *p2 = params.span.data() + last_vec_to_load;
+        std::int32_t diff = maxIdx - last_vec_to_load;
+
+        float *p1 = p + firstIdx + i;
+        float *p2 = p + last_vec_to_load;
         auto [vec2, mask] = [&]() {
             if (diff < 7)
                 return maskload(
@@ -317,6 +318,9 @@ void laneCrossingCompare(InternalSortParams<float> const &params,
     if (firstIdx > maxIdx) {
         return;
     }
+
+    auto p = params.span.data();
+    auto p1 = p + firstIdx;
     std::size_t length = lastIdx - firstIdx + 1;
     if (length == 8) {
         std::int64_t diff = maxIdx - firstIdx;
@@ -324,37 +328,38 @@ void laneCrossingCompare(InternalSortParams<float> const &params,
             return;
         }
 
-        auto p = params.span.data() + firstIdx;
         auto [reg, mask] = [&]() {
             if (diff < 7)
                 return maskload(
-                    std::span<float const>{p, std::size_t(diff + 1)});
+                    std::span<float const>{p1, std::size_t(diff + 1)});
             else
-                return RegMask{_mm256_loadu_ps(p), __m256i{}};
+                return RegMask{_mm256_loadu_ps(p1), __m256i{}};
         }();
 
         reverseHalvesAndCompare(reg);
         shuffleAndCompare<0b01001110, 0b00110011>(reg);
         shuffleAndCompare<0b10110001, 0b01010101>(reg);
         if (diff < 7)
-            _mm256_maskstore_ps(p, mask, reg);
+            _mm256_maskstore_ps(p1, mask, reg);
         else
-            _mm256_storeu_ps(p, reg);
+            _mm256_storeu_ps(p1, reg);
         return;
     }
 
-    auto p = params.span.data() + firstIdx;
     // This should be (length + 1) / 2, but not adding 1 does not change
     // anything since the length is always a multiple of 8.
     assert(length % 8 == 0);
     std::size_t halfLength = length / 2;
 
     for (std::uint32_t i = 0; i < halfLength; i += 8) {
-        std::int32_t diff = maxIdx - (firstIdx + halfLength + i);
-        if (diff < 0)
-            break;
 
-        float *p2 = p + halfLength + i;
+        std::size_t loadIndex = firstIdx + halfLength + i;
+        if (maxIdx < loadIndex) {
+            break;
+        }
+        std::int32_t diff = maxIdx - loadIndex;
+
+        float *p2 = p + loadIndex;
         auto [reg1, mask] = [&]() {
             if (diff < 7)
                 return maskload(
@@ -363,7 +368,6 @@ void laneCrossingCompare(InternalSortParams<float> const &params,
                 return RegMask{_mm256_loadu_ps(p2), __m256i{}};
         }();
 
-        float *p1 = p + i;
         __m256 reg0 = _mm256_loadu_ps(p1); // i-ti od začetka
         // register 2 vsebuje min vrednosti
         __m256 min = _mm256_min_ps(reg1, reg0);
@@ -375,6 +379,7 @@ void laneCrossingCompare(InternalSortParams<float> const &params,
             _mm256_maskstore_ps(p2, mask, reg1);
         else
             _mm256_storeu_ps(p2, reg1);
+        p1 += 8;
     }
 
     laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2},
@@ -683,7 +688,7 @@ void sort(std::span<float> span) {
                 InternalSortParams<float> const params{span, n,
                                                        n + segmentLength - 1};
                 compareFullLength(params);
-                laneCrossingCompareNew(params, 0U);
+                laneCrossingCompare(params, 0U);
             }
             segmentLength *= 2;
         }

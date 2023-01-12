@@ -232,20 +232,28 @@ void laneCrossingCompare_4n(InternalSortParams<double> const &params,
                            depth + 1);
 };
 
-void compareFullLength(double *arr, unsigned start, unsigned end,
-                       unsigned last_index) {
-    std::size_t length = end - start + 1;
-    std::size_t half = length / 2; // half je index prvega cez polovico
+// void compareFullLength(double *arr, unsigned start, unsigned end,
+//                       unsigned last_index) {
+
+void compareFullLength(InternalSortParams<double> const &params) {
+
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t const &maxIdx = params.span.size() - 1;
+    auto p = params.span.data();
+
+    assert(lastIdx >= firstIdx);
+    std::size_t length = lastIdx - firstIdx + 1;
+    std::size_t half = length / 2;
     for (int i = half - 4; i >= 0; i -= 4) {
-        // index of last vector to load
-        std::int32_t last_vec_to_load = end - 3 - i;
-        if (last_index < last_vec_to_load) {
+        std::size_t last_vec_to_load = lastIdx - 3 - i;
+        if (maxIdx < last_vec_to_load) {
             return;
         }
-        std::size_t diff = last_index - last_vec_to_load;
-        // Define pointers to the start of vectors to load.
-        double *p1 = arr + start + i;
-        double *p2 = arr + last_vec_to_load;
+        std::size_t diff = maxIdx - last_vec_to_load;
+
+        double *p1 = p + firstIdx + i;
+        double *p2 = p + last_vec_to_load;
 
         auto [vec2, mask] = [&]() {
             if (diff < 3) {
@@ -265,46 +273,57 @@ void compareFullLength(double *arr, unsigned start, unsigned end,
     }
 }
 
-void laneCrossingCompare(double *arr, unsigned start, unsigned end,
-                         unsigned last_index, unsigned depth) {
-    if (start > last_index) {
+void laneCrossingCompare(InternalSortParams<double> const &params,
+                         std::uint32_t depth) {
+
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t const &maxIdx = params.span.size() - 1;
+    if (firstIdx > maxIdx) {
         return;
     }
-    std::size_t length = end - start + 1;
-    if (length == 4) {
 
-        if (last_index < 1 + start) {
+    auto p = params.span.data();
+    auto p1 = p + firstIdx;
+    std::size_t length = lastIdx - firstIdx + 1;
+    if (length == 4) {
+        assert(maxIdx >= firstIdx);
+        std::size_t diff = maxIdx - firstIdx;
+        if (diff < 1) {
             return;
         }
-        std::size_t diff = last_index - start;
 
         auto [reg, mask] = [&]() {
             if (diff < 3) {
-                return maskload(std::span{arr + start, diff + 1});
+                return maskload(std::span{p1, diff + 1});
             }
-            return RegMask{_mm256_loadu_pd(arr + start), __m256i{}};
+            return RegMask{_mm256_loadu_pd(p1), __m256i{}};
         }();
 
         permute_and_compare<0b01001110>(reg);
         shuffle_and_compare<0b0101>(reg);
         if (diff < 3)
-            _mm256_maskstore_pd(arr + start, mask, reg);
+            _mm256_maskstore_pd(p1, mask, reg);
         else
-            _mm256_storeu_pd(arr + start, reg);
+            _mm256_storeu_pd(p1, reg);
 
         return;
     }
 
-    double *p = arr + start;
-    for (unsigned i = 0; i < length / 2; i += 4) {
+    // This should be (length + 1) / 2, but not adding 1 does not change
+    // anything since the length is always a multiple of 4.
+    assert(length % 4 == 0);
+    std::size_t halfLength = length / 2;
 
-        std::size_t loadIndex = (start + length / 2 + i);
-        if (last_index < loadIndex) {
+    for (std::size_t i = 0; i < halfLength; i += 4) {
+
+        std::size_t loadIndex = firstIdx + halfLength + i;
+        if (maxIdx < loadIndex) {
             break;
         }
-        std::size_t diff = last_index - loadIndex;
+        std::size_t diff = maxIdx - loadIndex;
 
-        double *p2 = p + length / 2 + i;
+        double *p2 = p + loadIndex;
         auto [reg1, mask] = [&]() {
             if (diff < 3) {
                 return maskload(std::span{p2, diff + 1});
@@ -312,7 +331,6 @@ void laneCrossingCompare(double *arr, unsigned start, unsigned end,
             return RegMask{_mm256_loadu_pd(p2), __m256i{}};
         }();
 
-        double *p1 = p + i;
         __m256d reg0 = _mm256_loadu_pd(p1); // i-ti od začetka
         // register 2 vsebuje min vrednosti
         __m256d min = _mm256_min_pd(reg1, reg0);
@@ -324,9 +342,12 @@ void laneCrossingCompare(double *arr, unsigned start, unsigned end,
             _mm256_maskstore_pd(p2, mask, reg1);
         else
             _mm256_storeu_pd(p2, reg1);
+        p1 += 4;
     }
-    laneCrossingCompare(arr, start, (start + end) / 2, last_index, depth + 1);
-    laneCrossingCompare(arr, (start + end) / 2 + 1, end, last_index, depth + 1);
+    laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2},
+                        depth + 1);
+    laneCrossingCompare({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
+                        depth + 1);
 };
 
 } // namespace
@@ -514,9 +535,6 @@ void sort(std::span<double> span) {
     std::size_t maxIdx = numberToSort - 1;
 
     if (numberToSort < 4) {
-        //__m256d reg1;
-        //__m256i mask;
-        // maskload(maxIdx, array, mask, reg1);
         auto [reg1, mask] = maskload(std::span{array, numberToSort});
         sort(reg1);
         _mm256_maskstore_pd(array, mask, reg1);
@@ -527,7 +545,6 @@ void sort(std::span<double> span) {
     else {
         int pow2 = (int)std::ceil(std::log2f(maxIdx + 1));
         int imaginary_length = (int)std::pow(2, pow2);
-        unsigned last_index = maxIdx;
 
         for (unsigned i = 0; i <= maxIdx - 3; i += 4) {
             __m256d vec1 = _mm256_loadu_pd(array + i);
@@ -547,8 +564,9 @@ void sort(std::span<double> span) {
         for (unsigned len = 8; len <= imaginary_length; len *= 2) {
             // inner loop goes over all subdivisions
             for (unsigned n = 0; n < imaginary_length; n += len) {
-                compareFullLength(array, n, n + len - 1, last_index);
-                laneCrossingCompare(array, n, n + len - 1, last_index, 0);
+                InternalSortParams<double> const params{span, n, n + len - 1};
+                compareFullLength(params);
+                laneCrossingCompare(params, 0);
             }
         }
     }
