@@ -38,6 +38,7 @@ runs:
       run: |
         sudo apt install valgrind
         echo "Valgrind installed"
+      shell: bash
 
     #- if: runner.os == 'Windows'
     # to be defined
