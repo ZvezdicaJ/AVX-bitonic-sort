@@ -49,4 +49,6 @@ jobs:
       - name: run valgrind on tests
         if:  ${{ matrix.build_type }} == 'Debug'
         run: |
+          sudo apt-get install libc6-dbg
+          export VALGRIND_LIB=$(pwd)/valgrind/libexec/valgrind
           ./valgrind/bin/valgrind ./build/${{ matrix.build_type }}/test/bitonic_sort_test
