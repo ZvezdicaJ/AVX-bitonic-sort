@@ -1,3 +1,6 @@
+#Useful references:
+# Meaning of "|" and ">": https://stackoverflow.com/questions/70496802/what-the-meaning-of-the-character-after-run-in-the-yml-file-of-github-ac
+
 name: "install-packages"
 description: "Install all required packages"
 
@@ -34,11 +37,20 @@ runs:
       run: sudo apt-get install libgtest-dev libgmock-dev
       shell: bash
 
-    - name: Install Valgrind
-      run: |
-        sudo apt install valgrind
-        echo "Valgrind installed"
-      shell: bash
+    - name: cache valgrind
+      id: cache-valgrind
+      uses: actions/cache@v3
+      with:
+        path: ./valgrind
+        key: ${{ runner.os }}-valgrind
 
-    #- if: runner.os == 'Windows'
-    # to be defined
+    - name: download and build valgrind
+      if: steps.cache-valgrind.outputs.cache-hit != 'true'
+      run: |
+        wget "https://sourceware.org/pub/valgrind/valgrind-3.20.0.tar.bz2"
+        tar -xf valgrind-3.20.0.tar.bz2
+        cd valgrind-3.20.0
+        ./configure --prefix=$(pwd)/../valgrind
+        make -j
+        make install
+      shell: bash

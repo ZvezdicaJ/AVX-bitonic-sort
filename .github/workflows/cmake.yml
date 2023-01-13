@@ -46,7 +46,7 @@ jobs:
         #working-directory: ${{github.workspace}}/build
         run: ctest --verbose --test-dir ./build/${{ matrix.build_type }}
 
-      #- name: run valgrind on tests
-      #  run: |
-      #    cd build/${{ matrix.build_type }}/test
-      #    valgrind ./bitonic_sort_test
+      - name: run valgrind on tests
+        if:  ${{ matrix.build_type }} == 'Debug'
+        run: |
+          ./valgrind/bin/valgrind ./build/${{ matrix.build_type }}/test/bitonic_sort_test
