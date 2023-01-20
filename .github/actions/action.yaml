@@ -54,3 +54,27 @@ runs:
         make -j
         make install
       shell: bash
+
+
+    - name: cache google benchmark
+      id: cache-GB
+      uses: actions/cache@v3
+      with:
+        path: ./GB_install
+        key: ${{ runner.os }}-GB
+
+    - name: download and build valgrind
+      if: steps.cache-valgrind.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/google/benchmark.git
+        cd benchmark
+        git checkout d572f47
+        cmake -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -S . -B "build" -DCMAKE_INSTALL_PREFIX=../GB_install/Release
+        cmake --build "build" --config Release --target install
+
+
+        git clean -f -d
+        cmake -DCMAKE_BUILD_TYPE=Debug -DBENCHMARK_DOWNLOAD_DEPENDENCIES=on -S . -B "build" -DCMAKE_INSTALL_PREFIX=../GB_install/Debug
+        cmake --build "build" --config Debug --target install
+
+      shell: bash

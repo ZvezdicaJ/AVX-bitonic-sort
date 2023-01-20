@@ -1,13 +1,11 @@
-#include "BitonicSortPrivate.hpp"
-#include "bitonic_sort.hpp"
-#include "type_definitions.hpp"
+#include "BitonicSort.h"
+#include "BitonicSortPrivate.h"
+#include "TypeDefinitions.h"
 
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <fstream>
 #include <immintrin.h>
-#include <iostream>
 #include <span>
 #include <vector>
 
@@ -27,50 +25,43 @@ RegMask maskload(std::span<float const> const &span) {
     case 1: {
         mask = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, LOAD);
         reg = _mm256_maskload_ps(p, mask);
-        __m256 infinity =
-            _mm256_set1_ps(std::numeric_limits<float>::infinity());
+        __m256 infinity = _mm256_set1_ps(std::numeric_limits<float>::infinity());
         reg = _mm256_blend_ps(infinity, reg, 0b00000001);
     } break;
     case 2: {
         mask = _mm256_set_epi32(0, 0, 0, 0, 0, 0, LOAD, LOAD);
         reg = _mm256_maskload_ps(p, mask);
-        __m256 infinity =
-            _mm256_set1_ps(std::numeric_limits<float>::infinity());
+        __m256 infinity = _mm256_set1_ps(std::numeric_limits<float>::infinity());
         reg = _mm256_blend_ps(infinity, reg, 0b00000011);
     } break;
     case 3: {
         mask = _mm256_set_epi32(0, 0, 0, 0, 0, LOAD, LOAD, LOAD);
         reg = _mm256_maskload_ps(p, mask);
-        __m256 infinity =
-            _mm256_set1_ps(std::numeric_limits<float>::infinity());
+        __m256 infinity = _mm256_set1_ps(std::numeric_limits<float>::infinity());
         reg = _mm256_blend_ps(infinity, reg, 0b00000111);
     } break;
     case 4: {
         mask = _mm256_set_epi32(0, 0, 0, 0, LOAD, LOAD, LOAD, LOAD);
         reg = _mm256_maskload_ps(p, mask);
-        __m256 infinity =
-            _mm256_set1_ps(std::numeric_limits<float>::infinity());
+        __m256 infinity = _mm256_set1_ps(std::numeric_limits<float>::infinity());
         reg = _mm256_blend_ps(infinity, reg, 0b00001111);
     } break;
     case 5: {
         mask = _mm256_set_epi32(0, 0, 0, LOAD, LOAD, LOAD, LOAD, LOAD);
         reg = _mm256_maskload_ps(p, mask);
-        __m256 infinity =
-            _mm256_set1_ps(std::numeric_limits<float>::infinity());
+        __m256 infinity = _mm256_set1_ps(std::numeric_limits<float>::infinity());
         reg = _mm256_blend_ps(infinity, reg, 0b00011111);
     } break;
     case 6: {
         mask = _mm256_set_epi32(0, 0, LOAD, LOAD, LOAD, LOAD, LOAD, LOAD);
         reg = _mm256_maskload_ps(p, mask);
-        __m256 infinity =
-            _mm256_set1_ps(std::numeric_limits<float>::infinity());
+        __m256 infinity = _mm256_set1_ps(std::numeric_limits<float>::infinity());
         reg = _mm256_blend_ps(infinity, reg, 0b00111111);
     } break;
     case 7: {
         mask = _mm256_set_epi32(0, LOAD, LOAD, LOAD, LOAD, LOAD, LOAD, LOAD);
         reg = _mm256_maskload_ps(p, mask);
-        __m256 infinity =
-            _mm256_set1_ps(std::numeric_limits<float>::infinity());
+        __m256 infinity = _mm256_set1_ps(std::numeric_limits<float>::infinity());
         reg = _mm256_blend_ps(infinity, reg, 0b01111111);
     } break;
     case 8: {
@@ -179,10 +170,8 @@ inline void laneCrossingCompare2N(InternalSortParams<float> const &params,
             _mm256_storeu_ps(p2, reg1);
         }
     }
-    laneCrossingCompare2N({params.span, firstIdx, (firstIdx + lastIdx) / 2},
-                          depth + 1);
-    laneCrossingCompare2N({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
-                          depth + 1);
+    laneCrossingCompare2N({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompare2N({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
 inline void compareFullLength8N(InternalSortParams<float> const &params) {
@@ -192,8 +181,7 @@ inline void compareFullLength8N(InternalSortParams<float> const &params) {
 
     std::size_t length = lastIdx - firstIdx + 1;
     std::size_t pastHalfIdx = length / 2; // half je index prvega cez polovico
-    for (std::int32_t toLoadIdx = pastHalfIdx - 8; toLoadIdx >= 0;
-         toLoadIdx -= 8) {
+    for (std::int32_t toLoadIdx = pastHalfIdx - 8; toLoadIdx >= 0; toLoadIdx -= 8) {
         if (lastIdx - 7 - toLoadIdx > maxIdx)
             break;
         float *p1 = params.span.data() + firstIdx + toLoadIdx;
@@ -251,10 +239,8 @@ inline void laneCrossingCompare8N(InternalSortParams<float> const &params,
             _mm256_storeu_ps(p2, reg1);
         }
     }
-    laneCrossingCompare8N({params.span, firstIdx, (firstIdx + lastIdx) / 2},
-                          depth + 1);
-    laneCrossingCompare8N({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
-                          depth + 1);
+    laneCrossingCompare8N({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompare8N({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
 void sortLessThan8(std::span<float> &span) {
@@ -283,22 +269,18 @@ inline void compareFullLength(InternalSortParams<float> const &params) {
         float *p2 = p + last_vec_to_load;
         auto [vec2, mask] = [&]() {
             if (diff < 7)
-                return maskload(
-                    std::span<float const>{p2, std::size_t(diff + 1)});
+                return maskload(std::span<float const>{p2, std::size_t(diff + 1)});
             else
                 return RegMask{_mm256_loadu_ps(p2), __m256i{}};
         }();
         {
             __m256 vec1 = _mm256_loadu_ps(p1);
-            __m256 reversed_halves =
-                _mm256_permute2f128_ps(vec1, vec1, 0b00000001);
-            __m256 reversed =
-                _mm256_shuffle_ps(reversed_halves, reversed_halves, 0b00011011);
+            __m256 reversed_halves = _mm256_permute2f128_ps(vec1, vec1, 0b00000001);
+            __m256 reversed = _mm256_shuffle_ps(reversed_halves, reversed_halves, 0b00011011);
             vec1 = _mm256_min_ps(reversed, vec2);
             vec2 = _mm256_max_ps(reversed, vec2);
             reversed_halves = _mm256_permute2f128_ps(vec1, vec1, 0b00000001);
-            vec1 =
-                _mm256_shuffle_ps(reversed_halves, reversed_halves, 0b00011011);
+            vec1 = _mm256_shuffle_ps(reversed_halves, reversed_halves, 0b00011011);
             _mm256_storeu_ps(p1, vec1);
             if (diff <= 6)
                 _mm256_maskstore_ps(p2, mask, vec2);
@@ -308,8 +290,7 @@ inline void compareFullLength(InternalSortParams<float> const &params) {
     }
 }
 
-void laneCrossingCompare(InternalSortParams<float> const &params,
-                         std::uint32_t depth) {
+void laneCrossingCompare(InternalSortParams<float> const &params, std::uint32_t depth) {
 
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
@@ -330,8 +311,7 @@ void laneCrossingCompare(InternalSortParams<float> const &params,
 
         auto [reg, mask] = [&]() {
             if (diff < 7)
-                return maskload(
-                    std::span<float const>{p1, std::size_t(diff + 1)});
+                return maskload(std::span<float const>{p1, std::size_t(diff + 1)});
             else
                 return RegMask{_mm256_loadu_ps(p1), __m256i{}};
         }();
@@ -362,8 +342,7 @@ void laneCrossingCompare(InternalSortParams<float> const &params,
         float *p2 = p + loadIndex;
         auto [reg1, mask] = [&]() {
             if (diff < 7)
-                return maskload(
-                    std::span<float const>{p2, std::size_t(diff + 1)});
+                return maskload(std::span<float const>{p2, std::size_t(diff + 1)});
             else
                 return RegMask{_mm256_loadu_ps(p2), __m256i{}};
         }();
@@ -382,14 +361,11 @@ void laneCrossingCompare(InternalSortParams<float> const &params,
         p1 += 8;
     }
 
-    laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2},
-                        depth + 1);
-    laneCrossingCompare({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
-                        depth + 1);
+    laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompare({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
-void laneCrossingCompareNew(InternalSortParams<float> const &params,
-                            std::uint32_t depth) {
+void laneCrossingCompareNew(InternalSortParams<float> const &params, std::uint32_t depth) {
 
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
@@ -464,10 +440,8 @@ void laneCrossingCompareNew(InternalSortParams<float> const &params,
         _mm256_maskstore_ps(p2, mask, reg2);
     }
 
-    laneCrossingCompareNew({params.span, firstIdx, (firstIdx + lastIdx) / 2},
-                           depth + 1);
-    laneCrossingCompareNew({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
-                           depth + 1);
+    laneCrossingCompareNew({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompareNew({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
 } // namespace
@@ -537,7 +511,7 @@ void sort_2n(std::span<float> span) {
 
     assert(!(numToSort & (numToSort - 1)) &&
            "The array to be sorted does not have length 2^n, where n is some "
-           "integer.!");
+           "integer. Got: numToSort = !");
 
     if (numToSort < 8) {
         auto [reg, mask] = maskload(span);
@@ -685,8 +659,7 @@ void sort(std::span<float> span) {
         std::size_t segmentLength = 16;
         for (std::uint32_t i = 0; i <= log2 - 4; i++) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
-                InternalSortParams<float> const params{span, n,
-                                                       n + segmentLength - 1};
+                InternalSortParams<float> const params{span, n, n + segmentLength - 1};
                 compareFullLength(params);
                 laneCrossingCompare(params, 0U);
             }

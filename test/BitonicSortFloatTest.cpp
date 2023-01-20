@@ -10,10 +10,12 @@
 #include <immintrin.h>
 #include <numeric>
 
-#include <bitonic_sort.hpp>
-#include <type_definitions.hpp>
+#include <BitonicSort.h>
+#include <TypeDefinitions.h>
 
 namespace bitonic_sort::test {
+
+using utils::getRandomVector;
 
 TEST(bitonic_sort, AVX_SINGLE_REG_FLOAT_RANDOM) {
     for (int i = 0; i < 10; i++) {

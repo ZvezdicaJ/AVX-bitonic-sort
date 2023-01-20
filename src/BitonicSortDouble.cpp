@@ -1,6 +1,6 @@
-#include "BitonicSortPrivate.hpp"
-#include "bitonic_sort.hpp"
-#include "type_definitions.hpp"
+#include "BitonicSort.h"
+#include "BitonicSortPrivate.h"
+#include "TypeDefinitions.h"
 
 #include <cassert>
 #include <cmath>
@@ -543,8 +543,8 @@ void sort(std::span<double> span) {
     else if (mod4(numberToSort) == 0)
         sort_4n(span);
     else {
-        int pow2 = (int)std::ceil(std::log2f(maxIdx + 1));
-        int imaginary_length = (int)std::pow(2, pow2);
+        std::size_t log2 = std::size_t(std::ceil(std::log2f(numberToSort)));
+        std::size_t maxSegmentLength = std::size_t(std::pow(2, log2));
 
         for (unsigned i = 0; i <= maxIdx - 3; i += 4) {
             __m256d vec1 = _mm256_loadu_pd(array + i);
@@ -561,13 +561,15 @@ void sort(std::span<double> span) {
             _mm256_maskstore_pd(array + idxToLoad, mask, reg1);
         }
 
-        for (unsigned len = 8; len <= imaginary_length; len *= 2) {
-            // inner loop goes over all subdivisions
-            for (unsigned n = 0; n < imaginary_length; n += len) {
-                InternalSortParams<double> const params{span, n, n + len - 1};
+        std::size_t segmentLength = 8;
+        for (std::uint32_t i = 0; i <= log2 - 3; i++) {
+            for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
+                InternalSortParams<double> const params{span, n,
+                                                        n + segmentLength - 1};
                 compareFullLength(params);
-                laneCrossingCompare(params, 0);
+                laneCrossingCompare(params, 0U);
             }
+            segmentLength *= 2;
         }
     }
 }
