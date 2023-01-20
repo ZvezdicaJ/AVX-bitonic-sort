@@ -64,7 +64,7 @@ runs:
         key: ${{ runner.os }}-GB
 
     - name: download and build valgrind
-      if: steps.cache-valgrind.outputs.cache-hit != 'true'
+      if: steps.cache-GB.outputs.cache-hit != 'true'
       run: |
         git clone https://github.com/google/benchmark.git
         cd benchmark
