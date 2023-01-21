@@ -1,0 +1,23 @@
+#Useful references:
+# Meaning of "|" and ">": https://stackoverflow.com/questions/70496802/what-the-meaning-of-the-character-after-run-in-the-yml-file-of-github-ac
+
+name: "install-packages"
+description: "Install all required packages"
+
+runs:
+  using: "composite"
+  steps:
+    - name: cache python venv
+      id: cache-python-venv
+      uses: actions/cache@v3
+      with:
+        path: ./venv
+        key: ${{ runner.os }}-python-venv
+
+    - name: prepare venv
+      if: steps.cache-python-venv.outputs.cache-hit != 'true'
+      run: |
+      py -m venv ./venv
+      ./venv/scripts/activate
+      py -m pip install -r .github/actions/python_venv/requirements.txt
+      shell: bash
