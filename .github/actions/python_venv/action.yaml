@@ -17,7 +17,7 @@ runs:
     - name: prepare venv
       if: steps.cache-python-venv.outputs.cache-hit != 'true'
       run: |
-      py -m venv ./venv
-      ./venv/scripts/activate
-      py -m pip install -r .github/actions/python_venv/requirements.txt
+        py -m venv ./venv
+        ./venv/scripts/activate
+        py -m pip install -r .github/actions/python_venv/requirements.txt
       shell: bash
