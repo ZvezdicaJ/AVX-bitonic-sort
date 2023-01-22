@@ -55,3 +55,16 @@ jobs:
           sudo apt-get install libc6-dbg
           export VALGRIND_LIB=$(pwd)/valgrind/libexec/valgrind
           ./valgrind/bin/valgrind ./build/${{ matrix.build_type }}/test/bitonic_sort_test
+
+      - name: run benchmarks
+        run: |
+          cd benchmarks
+          ./run_benchmarks.sh
+          python ./plot_results.py
+
+        - name: 'Upload Artifact'
+          uses: actions/upload-artifact@v3
+          with:
+            name: benchmark-results
+            path: ./benchmarks/results
+            retention-days: 5

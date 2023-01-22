@@ -74,26 +74,22 @@ DEFINE_BENCHMARK(bitonicSortBenchmarkF, sort_2n, float, sort_2n_float_benchmark)
     ->RangeMultiplier(2)
     ->Range(4, maxVectorSize)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("2n float");
 
 DEFINE_BENCHMARK(bitonicSortBenchmarkF, sort_8n, float, sort_8n_float_benchmark)
     ->RangeMultiplier(4)
     ->Range(8, maxVectorSize)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("8n float");
 
 DEFINE_BENCHMARK(bitonicSortBenchmarkF, sort, float, sort_float_benchmark)
     ->Apply(CustomArguments)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("general float");
 
 DEFINE_BENCHMARK(bitonicSortBenchmarkF, std::ranges::sort, float, sort_float_benchmark)
     ->Apply(CustomArguments)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("std float");
 
 // double benchmarks
@@ -101,26 +97,22 @@ DEFINE_BENCHMARK(bitonicSortBenchmarkD, sort_2n, double, sort_2n_float_benchmark
     ->RangeMultiplier(2)
     ->Range(4, maxVectorSize)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("2n double");
 
 DEFINE_BENCHMARK(bitonicSortBenchmarkD, sort_4n, double, sort_8n_float_benchmark)
     ->RangeMultiplier(4)
     ->Range(8, maxVectorSize)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("4n double");
 
 DEFINE_BENCHMARK(bitonicSortBenchmarkD, sort, double, sort_float_benchmark)
     ->Apply(CustomArguments)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("general double");
 
 DEFINE_BENCHMARK(bitonicSortBenchmarkD, std::ranges::sort, double, sort_float_benchmark)
     ->Apply(CustomArguments)
     ->Complexity(benchmark::oN)
-    ->MinTime(100)
     ->Name("std double");
 
 /*BENCHMARK_CAPTURE(bitonicSortBenchmark<float>,
