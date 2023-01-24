@@ -50,7 +50,7 @@ jobs:
         run: ctest --verbose --test-dir ./build/${{ matrix.build_type }}
 
       - name: run valgrind on tests
-        if:  ${{ matrix.build_type }} == 'Debug'
+        if:  matrix.build_type == "Debug"
         run: |
           sudo apt-get install libc6-dbg
           export VALGRIND_LIB=$(pwd)/valgrind/libexec/valgrind
@@ -58,7 +58,7 @@ jobs:
         shell: bash
 
       - name: run benchmarks
-        if:  ${{ matrix.build_type }} == 'Release'
+        if:  matrix.build_type == "Release"
         run: |
           cd benchmarks
           chmod +x ./run_benchmarks.sh
