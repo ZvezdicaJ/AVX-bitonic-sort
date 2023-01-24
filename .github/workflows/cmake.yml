@@ -42,7 +42,7 @@ jobs:
 
       # Build your program with the given configuration
       - name: Build
-        run: cmake --build ./build/${{ matrix.build_type }}
+        run: cmake --build ./build/${{ matrix.build_type }} --target install
 
       # Execute tests defined by the CMake configuration.
       - name: Test
