@@ -59,7 +59,10 @@ jobs:
 
       - name: run benchmarks
         run: |
+          ls
           cd benchmarks
+          ls
+          ls ../install/
           chmod +x ./run_benchmarks.sh
           ./run_benchmarks.sh
           python ./plot_results.py
