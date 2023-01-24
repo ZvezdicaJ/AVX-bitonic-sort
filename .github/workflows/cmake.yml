@@ -58,11 +58,9 @@ jobs:
         shell: bash
 
       - name: run benchmarks
+        if:  ${{ matrix.build_type }} == 'Release'
         run: |
-          ls
           cd benchmarks
-          ls
-          ls ../install/
           chmod +x ./run_benchmarks.sh
           ./run_benchmarks.sh
           python ./plot_results.py
