@@ -60,6 +60,7 @@ jobs:
       - name: run benchmarks
         run: |
           cd benchmarks
+          chmod +x ./run_benchmarks.sh
           ./run_benchmarks.sh
           python ./plot_results.py
         shell: bash
