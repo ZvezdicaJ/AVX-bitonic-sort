@@ -60,9 +60,11 @@ jobs:
       - name: run benchmarks
         if:  matrix.build_type == 'Release'
         run: |
+          source ./venv/bin/activate
           cd benchmarks
           chmod +x ./run_benchmarks.sh
           ./run_benchmarks.sh
+          venv/
           python ./plot_results.py
         shell: bash
 
