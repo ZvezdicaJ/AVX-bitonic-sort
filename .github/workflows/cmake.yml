@@ -65,11 +65,13 @@ jobs:
           chmod +x ./run_benchmarks.sh
           ./run_benchmarks.sh
           python ./plot_results.py
+          tar -czvf results_${{ matrix.compiler }}.tar.gz ./results
         shell: bash
 
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v3
+        if:  matrix.build_type == 'Release'
         with:
           name: benchmark-results
-          path: ./benchmarks/results
+          path: ./benchmarks/results_${{ matrix.compiler }}.tar.gz
           retention-days: 5
