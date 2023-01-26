@@ -64,7 +64,6 @@ jobs:
           cd benchmarks
           chmod +x ./run_benchmarks.sh
           ./run_benchmarks.sh
-          venv/
           python ./plot_results.py
         shell: bash
 
