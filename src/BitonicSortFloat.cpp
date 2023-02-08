@@ -7,15 +7,13 @@
 #include <cstdint>
 #include <immintrin.h>
 #include <span>
-#include <vector>
+
+#include <BitonicSortCommon.h>
 
 namespace bitonic_sort {
 namespace {
 
-struct alignas(32) RegMask {
-    __m256 reg;
-    __m256i mask;
-};
+using RegMask = utils::RegMask<__m256>;
 
 RegMask maskload(std::span<float const> const &span) {
     __m256 reg;

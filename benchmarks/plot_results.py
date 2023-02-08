@@ -132,7 +132,7 @@ def plot_benchmarks(classification: BenchmarkClassification):
             ax.legend()
     fig.set_tight_layout(True)
     fig.show()
-    fig.savefig(f"./results/{benchmarks[0].element_type.name}_benchmarks.jpg")
+    fig.savefig(f"./results/timing_vs_element_count.jpg")
 
 
 def plot_speedup(classification: BenchmarkClassification):
@@ -171,7 +171,7 @@ def plot_speedup(classification: BenchmarkClassification):
 
     fig.set_tight_layout(True)
     fig.show()
-    fig.savefig(f"./{benchmarks[0].element_type.name}_speedup.jpg")
+    fig.savefig(f"./results/speedup.jpg")
 
 
 if __name__ == "__main__":

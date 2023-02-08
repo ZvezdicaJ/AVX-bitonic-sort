@@ -20,7 +20,7 @@ static auto regToArray(RegType const &reg, Regs const &...regs) {
 
     static_assert((std::is_same_v<Regs, RegType> && ...));
     constexpr auto RegsCount = 1 + sizeof...(Regs);
-    using T = utils::SimdReg_t<RegType>;
+    using T = utils::SimdElement_t<RegType>;
     constexpr auto regSize = utils::SimdSize<RegType>;
 
     std::array<T, regSize * RegsCount> toReturn;

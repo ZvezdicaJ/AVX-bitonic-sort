@@ -7,16 +7,13 @@
 #include <cstdint>
 #include <immintrin.h>
 #include <span>
-#include <utility>
-#include <vector>
+
+#include <BitonicSortCommon.h>
 
 namespace bitonic_sort {
 namespace {
 
-struct alignas(32) RegMask {
-    __m256d reg;
-    __m256i mask;
-};
+using RegMask = utils::RegMask<__m256d>;
 
 RegMask maskload(std::span<double const> const &span) {
     __m256d reg;
@@ -26,22 +23,19 @@ RegMask maskload(std::span<double const> const &span) {
     case 1: {
         mask = _mm256_set_epi64x(0, 0, 0, LOAD);
         reg = _mm256_maskload_pd(p, mask);
-        __m256d infinity =
-            _mm256_set1_pd(std::numeric_limits<double>::infinity());
+        __m256d infinity = _mm256_set1_pd(std::numeric_limits<double>::infinity());
         reg = _mm256_blend_pd(infinity, reg, 0b0001);
     } break;
     case 2: {
         mask = _mm256_set_epi64x(0, 0, LOAD, LOAD);
         reg = _mm256_maskload_pd(p, mask);
-        __m256d infinity =
-            _mm256_set1_pd(std::numeric_limits<double>::infinity());
+        __m256d infinity = _mm256_set1_pd(std::numeric_limits<double>::infinity());
         reg = _mm256_blend_pd(infinity, reg, 0b0011);
     } break;
     case 3: {
         mask = _mm256_set_epi64x(0, LOAD, LOAD, LOAD);
         reg = _mm256_maskload_pd(p, mask);
-        __m256d infinity =
-            _mm256_set1_pd(std::numeric_limits<double>::infinity());
+        __m256d infinity = _mm256_set1_pd(std::numeric_limits<double>::infinity());
         reg = _mm256_blend_pd(infinity, reg, 0b0111);
     } break;
     case 4: {
@@ -93,6 +87,14 @@ void compare(__m256d &reg0, __m256d &reg1) {
     reg1 = max;
 }
 
+void computeMinMax(__m256d &reg0, __m256d &reg1) {
+    {
+        __m256d min = _mm256_min_pd(reg0, reg1);
+        reg1 = _mm256_max_pd(reg0, reg1);
+        reg0 = min;
+    }
+}
+
 void compareFullLength_2n(InternalSortParams<double> params) {
 
     std::size_t const &firstIdx = params.firstIdx;
@@ -115,8 +117,7 @@ void compareFullLength_2n(InternalSortParams<double> params) {
     }
 }
 
-void laneCrossingCompare_2n(InternalSortParams<double> params,
-                            std::uint32_t depth) {
+void laneCrossingCompare_2n(InternalSortParams<double> params, std::uint32_t depth) {
 
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
@@ -148,10 +149,8 @@ void laneCrossingCompare_2n(InternalSortParams<double> params,
             _mm256_storeu_pd(p2, reg1);
         }
     }
-    laneCrossingCompare_2n({params.span, firstIdx, (firstIdx + lastIdx) / 2},
-                           depth + 1);
-    laneCrossingCompare_2n({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
-                           depth + 1);
+    laneCrossingCompare_2n({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompare_2n({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
 void compareFullLength_4n(InternalSortParams<double> const &params) {
@@ -162,8 +161,7 @@ void compareFullLength_4n(InternalSortParams<double> const &params) {
 
     std::size_t const length = lastIdx - firstIdx + 1;
     std::size_t pastHalfIdx = length / 2; // half je index prvega cez polovico
-    for (std::int32_t toLoadIdx = pastHalfIdx - 4; toLoadIdx >= 0;
-         toLoadIdx -= 4) {
+    for (std::int32_t toLoadIdx = pastHalfIdx - 4; toLoadIdx >= 0; toLoadIdx -= 4) {
         if ((lastIdx - 3 - toLoadIdx > maxIdx))
             break;
         double *p1 = params.span.data() + firstIdx + toLoadIdx;
@@ -186,8 +184,7 @@ void compareFullLength_4n(InternalSortParams<double> const &params) {
     }
 }
 
-void laneCrossingCompare_4n(InternalSortParams<double> const &params,
-                            std::uint32_t depth) {
+void laneCrossingCompare_4n(InternalSortParams<double> const &params, std::uint32_t depth) {
 
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
@@ -226,10 +223,8 @@ void laneCrossingCompare_4n(InternalSortParams<double> const &params,
             _mm256_storeu_pd(p2, reg1);
         }
     }
-    laneCrossingCompare_4n({params.span, firstIdx, (firstIdx + lastIdx) / 2},
-                           depth + 1);
-    laneCrossingCompare_4n({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
-                           depth + 1);
+    laneCrossingCompare_4n({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompare_4n({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
 // void compareFullLength(double *arr, unsigned start, unsigned end,
@@ -273,8 +268,7 @@ void compareFullLength(InternalSortParams<double> const &params) {
     }
 }
 
-void laneCrossingCompare(InternalSortParams<double> const &params,
-                         std::uint32_t depth) {
+void laneCrossingCompare(InternalSortParams<double> const &params, std::uint32_t depth) {
 
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
@@ -344,10 +338,88 @@ void laneCrossingCompare(InternalSortParams<double> const &params,
             _mm256_storeu_pd(p2, reg1);
         p1 += 4;
     }
-    laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2},
-                        depth + 1);
-    laneCrossingCompare({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx},
-                        depth + 1);
+    laneCrossingCompare({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompare({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
+};
+
+void laneCrossingCompareNew(InternalSortParams<double> const &params, std::uint32_t depth) {
+
+    std::size_t const &firstIdx = params.firstIdx;
+    std::size_t const &lastIdx = params.lastIdx;
+    std::size_t const &maxIdx = params.span.size() - 1;
+    if (firstIdx > maxIdx) {
+        return;
+    }
+
+    auto p = params.span.data();
+    auto p1 = p + firstIdx;
+    std::size_t length = lastIdx - firstIdx + 1;
+    if (length == 4) {
+        assert(maxIdx >= firstIdx);
+        std::size_t diff = maxIdx - firstIdx;
+        if (diff < 1) {
+            return;
+        }
+
+        auto [reg, mask] = [&]() {
+            if (diff < 3) {
+                return maskload(std::span{p1, diff + 1});
+            }
+            return RegMask{_mm256_loadu_pd(p1), __m256i{}};
+        }();
+
+        permute_and_compare<0b01001110>(reg);
+        shuffle_and_compare<0b0101>(reg);
+        if (diff < 3)
+            _mm256_maskstore_pd(p1, mask, reg);
+        else
+            _mm256_storeu_pd(p1, reg);
+
+        return;
+    }
+
+    // This should be (length + 1) / 2, but not adding 1 does not change
+    // anything since the length is always a multiple of 8.
+    assert(length % 4 == 0);
+    std::size_t halfLength = (length) / 2;
+    std::uint32_t globalSecondHalfFirstIdx = firstIdx + halfLength;
+
+    std::size_t numPairsToCompare = [&]() -> std::size_t {
+        if (maxIdx >= lastIdx) {
+            return halfLength;
+        }
+        assert(lastIdx > maxIdx);
+        auto segmentExcess = lastIdx - maxIdx;
+        if (segmentExcess >= halfLength) {
+            return 0;
+        }
+        return halfLength - segmentExcess;
+    }();
+
+    auto *p2 = params.span.data() + globalSecondHalfFirstIdx;
+
+    std::uint32_t numPairsCompared = 3;
+    for (; numPairsCompared < numPairsToCompare; numPairsCompared += 4) {
+        __m256d reg1 = _mm256_loadu_pd(p1);
+        __m256d reg2 = _mm256_loadu_pd(p2);
+        computeMinMax(reg1, reg2);
+        _mm256_storeu_pd(p1, reg1);
+        _mm256_storeu_pd(p2, reg2);
+        p1 += 4;
+        p2 += 4;
+    }
+
+    std::uint32_t leftToLoad = numPairsToCompare - (numPairsCompared - 3);
+    if (leftToLoad != 0) {
+        __m256d reg1 = _mm256_loadu_pd(p1);
+        auto [reg2, mask] = maskload({p2, leftToLoad});
+        computeMinMax(reg1, reg2);
+        _mm256_storeu_pd(p1, reg1);
+        _mm256_maskstore_pd(p2, mask, reg2);
+    }
+
+    laneCrossingCompareNew({params.span, firstIdx, (firstIdx + lastIdx) / 2}, depth + 1);
+    laneCrossingCompareNew({params.span, (firstIdx + lastIdx) / 2 + 1, lastIdx}, depth + 1);
 };
 
 } // namespace
@@ -480,8 +552,7 @@ void sort_4n(std::span<double> span) {
     std::size_t pow2 = (std::size_t)std::ceil(std::log2f(numberToSort));
     std::size_t imaginary_length = (int)std::pow(2, pow2);
 
-    assert(mod4(numberToSort) == 0 &&
-           "The array to be sorted is not a multiple of 4!");
+    assert(mod4(numberToSort) == 0 && "The array to be sorted is not a multiple of 4!");
 
     if (numberToSort == 4) {
         __m256d vec = _mm256_loadu_pd(p);
@@ -564,10 +635,9 @@ void sort(std::span<double> span) {
         std::size_t segmentLength = 8;
         for (std::uint32_t i = 0; i <= log2 - 3; i++) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
-                InternalSortParams<double> const params{span, n,
-                                                        n + segmentLength - 1};
+                InternalSortParams<double> const params{span, n, n + segmentLength - 1};
                 compareFullLength(params);
-                laneCrossingCompare(params, 0U);
+                laneCrossingCompareNew(params, 0U);
             }
             segmentLength *= 2;
         }
