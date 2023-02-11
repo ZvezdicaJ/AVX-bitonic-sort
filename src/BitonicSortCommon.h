@@ -74,9 +74,9 @@ struct SimdReg<__m256> {
     constexpr static auto maskload = _mm256_maskload_ps;
     constexpr static auto set1 = _mm256_set1_ps;
 
-    template <int imm8>
+    template <std::uint32_t imm8>
     static inline __m256 blend(__m256 a, __m256 b) {
-        return _mm256_blend_pd(a, b, imm8);
+        return _mm256_blend_ps(a, b, imm8);
     };
 };
 
