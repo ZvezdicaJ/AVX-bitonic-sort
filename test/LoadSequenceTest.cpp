@@ -54,7 +54,7 @@ template <typename RegType>
 void checkMask(std::uint32_t loadCount, __m256i const &mask) {
     using IntType = typename SimdReg<RegType>::IntType;
     std::vector<IntType> maskVec(SimdSize<RegType>);
-    _mm256_store_si256((__m256i *)(maskVec.data()), mask);
+    _mm256_storeu_si256((__m256i *)(maskVec.data()), mask);
     for (std::uint32_t i = 0; i < SimdSize<RegType>; i++) {
         if (i < loadCount) {
             EXPECT_EQ(maskVec[i], IntType(LOAD));
@@ -99,5 +99,4 @@ TEST(MaskLoaderTest, doubleTest) {
 }
 
 } // namespace
-
 } // namespace bitonic_sort::utils
