@@ -1,6 +1,4 @@
 #include "BitonicSort.h"
-#include "BitonicSortPrivate.h"
-#include "TypeDefinitions.h"
 
 #include <cassert>
 #include <cmath>
@@ -9,13 +7,17 @@
 #include <span>
 
 #include <BitonicSortCommon.h>
+#include <BitonicSortPrivate.h>
+#include <TypeDefinitions.h>
+#include <maskload.h>
 
 namespace bitonic_sort {
 namespace {
 
 using RegMask = utils::RegMask<__m256d>;
+constexpr auto maskload = utils::maskload<__m256d>;
 
-RegMask maskload(std::span<double const> const &span) {
+/*RegMask maskload(std::span<double const> const &span) {
     __m256d reg;
     __m256i mask;
     auto p = span.data();
@@ -46,7 +48,7 @@ RegMask maskload(std::span<double const> const &span) {
         throw std::runtime_error("Invalid number of floats to load.");
     };
     return RegMask{std::move(reg), std::move(mask)};
-}
+}*/
 
 template <uint8_t mask>
 void shuffle_and_compare(__m256d &reg) {
