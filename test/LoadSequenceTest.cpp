@@ -64,8 +64,7 @@ void checkMask(std::uint32_t loadCount, __m256i const &mask) {
 
 template <typename RegType>
 void runMaskLoaderTest(std::vector<typename SimdReg<RegType>::ElementType> vec1) {
-    MaskLoader<RegType> maskLoader;
-    auto const [reg, mask] = maskLoader.load(vec1);
+    auto const [reg, mask] = maskload<RegType>(std::span(vec1));
     checkMask<RegType>(vec1.size(), mask);
 }
 

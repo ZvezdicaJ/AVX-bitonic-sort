@@ -54,43 +54,14 @@ struct MakeLoadSequenceHelper<0, ToLoad, Vals...> {
     using type = LoadSequence<Vals...>;
 };
 
-template <std::size_t N, std::size_t ToLoad>
-using MakeLoadSequence = typename MakeLoadSequenceHelper<N, ToLoad>::type;
+template <std::size_t ElementCount, std::size_t ToLoad>
+using MakeLoadSequence = typename MakeLoadSequenceHelper<ElementCount, ToLoad>::type;
 
 template <typename RegType>
-struct MaskLoader {
-    using T = typename SimdReg<RegType>::ElementType;
-    using IntT = typename SimdReg<RegType>::IntType;
-    constexpr static auto N = SimdSize<RegType>;
+RegMask<RegType> maskload(std::span<typename SimdReg<RegType>::ElementType const> const);
 
-    template <std::uint32_t LoadCount, std::int64_t... Ints>
-        requires(LoadCount <= SimdSize<RegType>)
-    RegMask<RegType> maskloadHelper(std::span<T> span, LoadSequence<Ints...>) {
-        if (span.size() == LoadCount) {
-            std::vector<std::int64_t> vec{Ints...};
-            auto mask = SimdReg<RegType>::setMask(Ints...);
-            auto reg = SimdReg<RegType>::maskload(span.data(), mask);
-            auto infinity = SimdReg<RegType>::set1(std::numeric_limits<T>::infinity());
-
-            auto constexpr blendMask = computeBlendMask<LoadCount>();
-            reg = SimdReg<RegType>::template blend<blendMask>(infinity, reg);
-            return {reg, mask};
-        }
-        return maskloadHelper<LoadCount + 1>(
-            span, MakeLoadSequence<SimdSize<RegType>, LoadCount + 1>());
-    }
-
-    template <std::uint32_t LoadCount, std::int64_t... Ints>
-        requires(LoadCount > SimdSize<RegType>)
-    RegMask<RegType> maskloadHelper(std::span<T> span, LoadSequence<Ints...>) {
-        throw std::runtime_error("Attempt to load more elements than SIMD vector can hold.");
-    }
-
-    RegMask<RegType> load(std::span<T> span) {
-        if (span.size() == 0)
-            return RegMask<RegType>{};
-        return maskloadHelper<1>(span, MakeLoadSequence<SimdSize<RegType>, 1>());
-    }
-};
+extern template RegMask<__m256> maskload<__m256>(std::span<float const> const);
+extern template RegMask<__m256d> maskload<__m256d>(std::span<double const> const);
+extern template RegMask<__m256i> maskload<__m256i>(std::span<int const> const);
 
 } // namespace bitonic_sort::utils
