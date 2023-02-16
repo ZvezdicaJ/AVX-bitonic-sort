@@ -23,6 +23,13 @@ template <typename RegType>
 constexpr static auto N = SimdSize<RegType>;
 
 template <typename RegType, std::uint32_t LoadCount, std::int64_t... Ints>
+    requires(LoadCount > SimdSize<RegType>)
+static RegMask<RegType> maskloadHelper(std::span<T<RegType> const> const span,
+                                       LoadSequence<Ints...>) {
+    throw std::runtime_error("Attempt to load more elements than SIMD vector can hold.");
+}
+
+template <typename RegType, std::uint32_t LoadCount, std::int64_t... Ints>
     requires(LoadCount <= SimdSize<RegType>)
 static RegMask<RegType> maskloadHelper(std::span<T<RegType> const> const span,
                                        LoadSequence<Ints...>) {
@@ -38,13 +45,6 @@ static RegMask<RegType> maskloadHelper(std::span<T<RegType> const> const span,
     }
     return maskloadHelper<RegType, LoadCount + 1>(
         span, MakeLoadSequence<SimdSize<RegType>, LoadCount + 1>());
-}
-
-template <typename RegType, std::uint32_t LoadCount, std::int64_t... Ints>
-    requires(LoadCount > SimdSize<RegType>)
-static RegMask<RegType> maskloadHelper(std::span<T<RegType> const> const span,
-                                       LoadSequence<Ints...>) {
-    throw std::runtime_error("Attempt to load more elements than SIMD vector can hold.");
 }
 
 } // namespace

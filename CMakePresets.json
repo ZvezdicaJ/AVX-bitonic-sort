@@ -17,7 +17,7 @@
                 "GBENCHMARK_PATH": "c:/libs/benchmark/debug/",
                 "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug",
                 "CMAKE_CXX_STANDARD": "20",
-                "CMAKE_CXX_FLAGS": "-mavx2"
+                "CMAKE_CXX_FLAGS": "-mavx2 -Wno-ignored-attributes"
             }
         },
         {
@@ -56,7 +56,7 @@
                 "GBENCHMARK_PATH": "c:/libs/benchmark/release/",
                 "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded",
                 "CMAKE_CXX_STANDARD": "20",
-                "CMAKE_CXX_FLAGS": "-mavx2"
+                "CMAKE_CXX_FLAGS": "-mavx2 -Wignored-attributes"
             }
         }
     ]
