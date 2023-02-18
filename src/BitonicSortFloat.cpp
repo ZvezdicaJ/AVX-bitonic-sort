@@ -16,8 +16,10 @@ namespace {
 
 using RegMask = utils::RegMask<__m256>;
 
+#ifdef USE_TEMPLATED_MASKLOAD
 constexpr auto maskload = utils::maskload<__m256>;
-/*RegMask maskload(std::span<float const> const &span) {
+#else
+RegMask maskload(std::span<float const> const &span) {
     __m256 reg;
     __m256i mask;
     auto p = span.data();
@@ -72,7 +74,8 @@ constexpr auto maskload = utils::maskload<__m256>;
         throw std::runtime_error("Invalid number of floats to load.");
     };
     return RegMask{std::move(reg), std::move(mask)};
-}*/
+}
+#endif
 
 template <std::uint8_t mask1, std::uint8_t mask2>
 void shuffleAndCompare(__m256 &reg) {
@@ -649,13 +652,6 @@ void sort(std::span<float> span) {
             _mm256_maskstore_ps(p, mask, reg1);
         }
 
-        ///////////////////////////////////////////////////////
-        // outer loop
-        // len is number of floats in length to be compared
-        // each step increases this length by factor of 2.
-        // 8 and less has already been done above
-        // for (unsigned len = 16; len <= imaginary_length; len *=
-        // 2)
         std::size_t segmentLength = 16;
         for (std::uint32_t i = 0; i <= log2 - 4; i++) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {

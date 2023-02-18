@@ -30,4 +30,13 @@ void sort_2n(std::span<double> span);
 void sort_4n(std::span<double> span);
 void sort(std::span<double> span);
 
+void sort(__m256i &reg);
+void sort(__m256i &reg0, __m256i &reg1);
+void sort(__m256i &reg0, __m256i &reg1, __m256i &reg2, __m256i &reg3);
+void sort_2n(std::span<int> span);
+void sort_8n(std::span<int> span);
+void sort(std::span<int> span);
+
+#define USE_TEMPLATED_MASKLOAD
+
 } // namespace bitonic_sort

@@ -15,9 +15,11 @@ namespace bitonic_sort {
 namespace {
 
 using RegMask = utils::RegMask<__m256d>;
-constexpr auto maskload = utils::maskload<__m256d>;
 
-/*RegMask maskload(std::span<double const> const &span) {
+#ifdef USE_TEMPLATED_MASKLOAD
+constexpr auto maskload = utils::maskload<__m256d>;
+#else
+RegMask maskload(std::span<double const> const &span) {
     __m256d reg;
     __m256i mask;
     auto p = span.data();
@@ -48,7 +50,8 @@ constexpr auto maskload = utils::maskload<__m256d>;
         throw std::runtime_error("Invalid number of floats to load.");
     };
     return RegMask{std::move(reg), std::move(mask)};
-}*/
+}
+#endif
 
 template <uint8_t mask>
 void shuffle_and_compare(__m256d &reg) {
@@ -58,7 +61,15 @@ void shuffle_and_compare(__m256d &reg) {
     reg = _mm256_unpacklo_pd(min, max);
 }
 
-void reverse_and_compare(__m256d &reg) {
+template <uint8_t mask>
+void shuffleAndCompare(__m256d &reg) {
+    __m256d shuffled_reg = _mm256_shuffle_pd(reg, reg, mask);
+    __m256d max = _mm256_max_pd(reg, shuffled_reg);
+    __m256d min = _mm256_min_pd(reg, shuffled_reg);
+    reg = _mm256_unpacklo_pd(min, max);
+}
+
+void reverseAndCompare(__m256d &reg) {
     __m256d reversed_reg = _mm256_permute4x64_pd(reg, 0b00011011);
     __m256d max = _mm256_max_pd(reg, reversed_reg);
     __m256d min = _mm256_min_pd(reg, reversed_reg);
@@ -66,7 +77,7 @@ void reverse_and_compare(__m256d &reg) {
     reg = _mm256_blend_pd(max, min, 0b0011);
 }
 
-void reverse_and_compare(__m256d &reg0, __m256d &reg1) {
+void reverseAndCompare(__m256d &reg0, __m256d &reg1) {
     __m256d reverse0 = _mm256_permute4x64_pd(reg0, 0b00011011);
     // register 2 vsebuje min vrednosti
     reg0 = _mm256_min_pd(reg1, reverse0);
@@ -75,7 +86,7 @@ void reverse_and_compare(__m256d &reg0, __m256d &reg1) {
 }
 
 template <int mask>
-void permute_and_compare(__m256d &reg) {
+void permuteAndCompare(__m256d &reg) {
     __m256d shuffled_reg = _mm256_permute4x64_pd(reg, mask);
     __m256d max = _mm256_max_pd(reg, shuffled_reg);
     __m256d min = _mm256_min_pd(reg, shuffled_reg);
@@ -111,7 +122,7 @@ void compareFullLength_2n(InternalSortParams<double> params) {
     for (unsigned i = 0; i < half; i += 4) {
         __m256d vec1 = _mm256_loadu_pd(p1);
         __m256d vec2 = _mm256_loadu_pd(p2);
-        reverse_and_compare(vec1, vec2);
+        reverseAndCompare(vec1, vec2);
         _mm256_storeu_pd(p1, vec1);
         _mm256_storeu_pd(p2, vec2);
         p1 += 4;
@@ -127,8 +138,8 @@ void laneCrossingCompare_2n(InternalSortParams<double> params, std::uint32_t dep
 
     if (length == 4) {
         __m256d reg = _mm256_loadu_pd(params.span.data() + firstIdx);
-        permute_and_compare<0b01001110>(reg);
-        shuffle_and_compare<0b0101>(reg);
+        permuteAndCompare<0b01001110>(reg);
+        shuffleAndCompare<0b0101>(reg);
         _mm256_storeu_pd(params.span.data() + firstIdx, reg);
         return;
     }
@@ -200,8 +211,8 @@ void laneCrossingCompare_4n(InternalSortParams<double> const &params, std::uint3
 
     if (length == 4) {
         __m256d reg = _mm256_loadu_pd(p);
-        permute_and_compare<0b01001110>(reg);
-        shuffle_and_compare<0b0101>(reg);
+        permuteAndCompare<0b01001110>(reg);
+        shuffleAndCompare<0b0101>(reg);
         _mm256_storeu_pd(p, reg);
         return;
     }
@@ -260,7 +271,7 @@ void compareFullLength(InternalSortParams<double> const &params) {
         }();
 
         __m256d vec1 = _mm256_loadu_pd(p1);
-        reverse_and_compare(vec1, vec2);
+        reverseAndCompare(vec1, vec2);
         vec1 = _mm256_permute4x64_pd(vec1, 0b00011011);
         _mm256_storeu_pd(p1, vec1);
         if (diff <= 2)
@@ -296,8 +307,8 @@ void laneCrossingCompare(InternalSortParams<double> const &params, std::uint32_t
             return RegMask{_mm256_loadu_pd(p1), __m256i{}};
         }();
 
-        permute_and_compare<0b01001110>(reg);
-        shuffle_and_compare<0b0101>(reg);
+        permuteAndCompare<0b01001110>(reg);
+        shuffleAndCompare<0b0101>(reg);
         if (diff < 3)
             _mm256_maskstore_pd(p1, mask, reg);
         else
@@ -370,8 +381,8 @@ void laneCrossingCompareNew(InternalSortParams<double> const &params, std::uint3
             return RegMask{_mm256_loadu_pd(p1), __m256i{}};
         }();
 
-        permute_and_compare<0b01001110>(reg);
-        shuffle_and_compare<0b0101>(reg);
+        permuteAndCompare<0b01001110>(reg);
+        shuffleAndCompare<0b0101>(reg);
         if (diff < 3)
             _mm256_maskstore_pd(p1, mask, reg);
         else
@@ -432,9 +443,9 @@ void laneCrossingCompareNew(InternalSortParams<double> const &params, std::uint3
  * @param reg register to be sorted
  */
 void sort(__m256d &reg) {
-    shuffle_and_compare<0b0101>(reg);
-    reverse_and_compare(reg);
-    shuffle_and_compare<0b0101>(reg);
+    shuffleAndCompare<0b0101>(reg);
+    reverseAndCompare(reg);
+    shuffleAndCompare<0b0101>(reg);
 }
 
 /**
@@ -451,11 +462,11 @@ void sort(__m256d &reg) {
 void sort(__m256d &reg0, __m256d &reg1) {
     sort(reg1); // sort first register
     sort(reg0); // sort second register
-    reverse_and_compare(reg0, reg1);
-    permute_and_compare<0b01001110>(reg1);
-    shuffle_and_compare<0b0101>(reg1);
-    permute_and_compare<0b01001110>(reg0);
-    shuffle_and_compare<0b0101>(reg0);
+    reverseAndCompare(reg0, reg1);
+    permuteAndCompare<0b01001110>(reg1);
+    shuffleAndCompare<0b0101>(reg1);
+    permuteAndCompare<0b01001110>(reg0);
+    shuffleAndCompare<0b0101>(reg0);
 }
 
 /**
@@ -476,8 +487,8 @@ void sort(__m256d &reg0, __m256d &reg1, __m256d &reg2, __m256d &reg3) {
     sort(reg3);       // sort fourth register
     sort(reg0, reg1); // sort third register
     sort(reg2, reg3); // sort fourth register
-    reverse_and_compare(reg0, reg3);
-    reverse_and_compare(reg1, reg2);
+    reverseAndCompare(reg0, reg3);
+    reverseAndCompare(reg1, reg2);
 
     compare(reg1, reg3);
     compare(reg0, reg2);
@@ -485,15 +496,15 @@ void sort(__m256d &reg0, __m256d &reg1, __m256d &reg2, __m256d &reg3) {
     compare(reg0, reg1);
     compare(reg2, reg3);
 
-    permute_and_compare<0b01001110>(reg0);
-    permute_and_compare<0b01001110>(reg1);
-    permute_and_compare<0b01001110>(reg2);
-    permute_and_compare<0b01001110>(reg3);
+    permuteAndCompare<0b01001110>(reg0);
+    permuteAndCompare<0b01001110>(reg1);
+    permuteAndCompare<0b01001110>(reg2);
+    permuteAndCompare<0b01001110>(reg3);
 
-    shuffle_and_compare<0b0101>(reg0);
-    shuffle_and_compare<0b0101>(reg1);
-    shuffle_and_compare<0b0101>(reg2);
-    shuffle_and_compare<0b0101>(reg3);
+    shuffleAndCompare<0b0101>(reg0);
+    shuffleAndCompare<0b0101>(reg1);
+    shuffleAndCompare<0b0101>(reg2);
+    shuffleAndCompare<0b0101>(reg3);
 }
 
 void sort_2n(std::span<double> span) {
