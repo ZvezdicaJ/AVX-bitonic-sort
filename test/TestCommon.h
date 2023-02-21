@@ -25,10 +25,20 @@ static auto regToArray(RegType const &reg, Regs const &...regs) {
 
     std::array<T, regSize * RegsCount> toReturn;
 
-    utils::SimdReg<RegType>::storeReg(toReturn.data(), reg);
+    auto store = [](T *p, auto const &reg) {
+        if constexpr (std::is_same_v<T, int>) {
+            utils::SimdReg<RegType>::storeReg((RegType *)(p), reg);
+        } else {
+            utils::SimdReg<RegType>::storeReg(p, reg);
+        }
+    };
+
+    store(toReturn.data(), reg);
+
     std::uint32_t i = 1;
     auto storeIth = [&](auto const &r) {
-        utils::SimdReg<RegType>::storeReg(toReturn.data() + i * regSize, r);
+        store(toReturn.data() + i * regSize, r);
+        // utils::SimdReg<RegType>::storeReg(toReturn.data() + i * regSize, r);
         i++;
     };
     (storeIth(regs), ...);
@@ -51,6 +61,7 @@ void runRegisterSortTest(Reg &reg, Regs &...regs) {
     auto regArraySolution = regToArray(reg, regs...);
     std::sort(regArraySolution.begin(), regArraySolution.end());
 
+    auto beforeSort = regToArray(reg, regs...);
     bitonic_sort::sort(reg, regs...);
     auto regArrayToCheck = regToArray(reg, regs...);
 

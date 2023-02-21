@@ -1,4 +1,4 @@
-#include "test_common.h"
+#include "TestCommon.h"
 
 #include <array>
 #include <chrono>

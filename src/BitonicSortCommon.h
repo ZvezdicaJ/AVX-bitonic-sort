@@ -13,7 +13,7 @@ namespace bitonic_sort::utils {
 inline static std::default_random_engine generator(std::time(0));
 inline static std::uniform_real_distribution<float> floatDist(-100, 100);
 inline static std::uniform_real_distribution<double> doubleDist(-100, 100);
-inline static std::uniform_int_distribution<int> intDist(-10000000, 10000000);
+inline static std::uniform_int_distribution<int> intDist(-1000, 1000);
 
 inline auto randomNumber = []<typename T>() -> T {
     if constexpr (std::is_same_v<T, double>) {

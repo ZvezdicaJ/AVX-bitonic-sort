@@ -1,4 +1,4 @@
-#include "test_common.h"
+#include "TestCommon.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -57,8 +57,7 @@ TEST(SORT, BITONIC_AVX_SORT_4REG_FLOAT) {
     {
         __m256 reg0 = _mm256_setr_ps(-1, -2, 18, 29, 33, -29, -38, -43);
         __m256 reg1 = _mm256_setr_ps(500, -80, 2, -5, -26, -45, -66, 99);
-        __m256 reg2 =
-            _mm256_setr_ps(-10, 22, 180, -2900, -3003, -9999, 9999, 0);
+        __m256 reg2 = _mm256_setr_ps(-10, 22, 180, -2900, -3003, -9999, 9999, 0);
         __m256 reg3 = _mm256_setr_ps(38, -120, 25, -17, -8, 8, -99, 99);
         runRegisterSortTest(reg0, reg1, reg2, reg3);
     }

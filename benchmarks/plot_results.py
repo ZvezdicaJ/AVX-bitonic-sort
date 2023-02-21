@@ -131,7 +131,7 @@ def plot_benchmarks(classification: BenchmarkClassification):
             ax.set_yscale("log")
             ax.legend()
     fig.set_tight_layout(True)
-    fig.show()
+    plt.show()
     fig.savefig(f"./results/timing_vs_element_count.jpg")
 
 
@@ -170,7 +170,7 @@ def plot_speedup(classification: BenchmarkClassification):
         ax.legend()
 
     fig.set_tight_layout(True)
-    fig.show()
+    plt.show()
     fig.savefig(f"./results/speedup.jpg")
 
 

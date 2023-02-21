@@ -469,7 +469,6 @@ void sort(__m256 &reg0, __m256 &reg1) {
     shuffleAndCompare<0b10110001, 0b01010101>(reg0);
     shuffleAndCompare<0b01001110, 0b00110011>(reg1);
     shuffleAndCompare<0b10110001, 0b01010101>(reg1);
-    return;
 }
 
 void sort(__m256 &reg0, __m256 &reg1, __m256 &reg2, __m256 &reg3) {
@@ -509,7 +508,7 @@ void sort(__m256 &reg0, __m256 &reg1, __m256 &reg2, __m256 &reg3) {
 
 void sort_2n(std::span<float> span) {
 
-    float *array = span.data();
+    float *p = span.data();
     std::uint32_t numToSort = span.size();
 
     assert(!(numToSort & (numToSort - 1)) &&
@@ -519,45 +518,45 @@ void sort_2n(std::span<float> span) {
     if (numToSort < 8) {
         auto [reg, mask] = maskload(span);
         sort(reg);
-        _mm256_maskstore_ps(array, mask, reg);
+        _mm256_maskstore_ps(p, mask, reg);
     } else if (numToSort == 8) {
 
-        __m256 vec = _mm256_loadu_ps(array);
+        __m256 vec = _mm256_loadu_ps(p);
         sort(vec);
-        _mm256_storeu_ps(array, vec);
+        _mm256_storeu_ps(p, vec);
 
     } else if (numToSort == 16) {
 
-        __m256 vec1 = _mm256_loadu_ps(array);
-        __m256 vec2 = _mm256_loadu_ps(array + 8);
+        __m256 vec1 = _mm256_loadu_ps(p);
+        __m256 vec2 = _mm256_loadu_ps(p + 8);
         sort(vec1, vec2);
-        _mm256_storeu_ps(array, vec1);
-        _mm256_storeu_ps(array + 8, vec2);
+        _mm256_storeu_ps(p, vec1);
+        _mm256_storeu_ps(p + 8, vec2);
 
     } else if (numToSort == 32) {
 
-        __m256 vec1 = _mm256_loadu_ps(array);
-        __m256 vec2 = _mm256_loadu_ps(array + 8);
-        __m256 vec3 = _mm256_loadu_ps(array + 16);
-        __m256 vec4 = _mm256_loadu_ps(array + 24);
+        __m256 vec1 = _mm256_loadu_ps(p);
+        __m256 vec2 = _mm256_loadu_ps(p + 8);
+        __m256 vec3 = _mm256_loadu_ps(p + 16);
+        __m256 vec4 = _mm256_loadu_ps(p + 24);
         sort(vec1, vec2, vec3, vec4);
-        _mm256_storeu_ps(array, vec1);
-        _mm256_storeu_ps(array + 8, vec2);
-        _mm256_storeu_ps(array + 16, vec3);
-        _mm256_storeu_ps(array + 24, vec4);
+        _mm256_storeu_ps(p, vec1);
+        _mm256_storeu_ps(p + 8, vec2);
+        _mm256_storeu_ps(p + 16, vec3);
+        _mm256_storeu_ps(p + 24, vec4);
 
     } else if (numToSort >= 64) {
         for (std::uint32_t i = 0; i < numToSort; i += 8) {
-            __m256 vec1 = _mm256_loadu_ps(array + i);
+            __m256 vec1 = _mm256_loadu_ps(p + i);
             sort(vec1);
-            _mm256_storeu_ps(array + i, vec1);
+            _mm256_storeu_ps(p + i, vec1);
         }
 
         for (std::uint32_t len = 16; len <= numToSort; len *= 2) {
             for (std::uint32_t n = 0; n < numToSort; n += len) {
                 InternalSortParams<float> const params{span, n, n + len - 1};
                 compareFullLength2N(params);
-                laneCrossingCompare2N(params, 0);
+                laneCrossingCompare2N(params, 0U);
             }
         }
     }
@@ -567,9 +566,6 @@ void sort_8n(std::span<float> span) {
 
     float *p = span.data();
     std::size_t numToSort = span.size();
-
-    std::size_t pow2 = std::size_t(std::ceil(std::log2f(numToSort)));
-    std::size_t imaginary_length = std::size_t(1 << pow2);
 
     assert(mod8(numToSort) == 0 && "The array to be sorted does not have the "
                                    "size that is a multiple of 8!");
@@ -602,12 +598,17 @@ void sort_8n(std::span<float> span) {
             _mm256_storeu_ps(p + i, vec1);
         }
 
-        for (std::size_t len = 16; len <= imaginary_length; len *= 2) {
-            for (std::size_t n = 0; n < imaginary_length; n += len) {
-                InternalSortParams<float> const params{span, n, n + len - 1};
+        std::size_t log2 = std::size_t(std::ceil(std::log2f(numToSort)));
+        std::size_t maxSegmentLength = std::size_t(std::pow(2, log2));
+
+        std::size_t segmentLength = 16;
+        for (std::uint32_t i = 0; i <= log2 - 4; i++) {
+            for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
+                InternalSortParams<float> const params{span, n, n + segmentLength - 1};
                 compareFullLength8N(params);
-                laneCrossingCompare8N(params, 0);
+                laneCrossingCompare8N(params, 0U);
             }
+            segmentLength *= 2;
         }
     }
 }
@@ -635,9 +636,6 @@ void sort(std::span<float> span) {
         _mm256_storeu_ps(array, reg1);
         _mm256_maskstore_ps(array + 8, mask, reg2);
     } else {
-        std::size_t log2 = std::size_t(std::ceil(std::log2f(numToSort)));
-        std::size_t maxSegmentLength = std::size_t(std::pow(2, log2));
-
         for (unsigned i = 0; i <= end - 7; i += 8) {
             __m256 vec1 = _mm256_loadu_ps(array + i);
             sort(vec1);
@@ -652,6 +650,8 @@ void sort(std::span<float> span) {
             _mm256_maskstore_ps(p, mask, reg1);
         }
 
+        std::size_t log2 = std::size_t(std::ceil(std::log2f(numToSort)));
+        std::size_t maxSegmentLength = std::size_t(std::pow(2, log2));
         std::size_t segmentLength = 16;
         for (std::uint32_t i = 0; i <= log2 - 4; i++) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
