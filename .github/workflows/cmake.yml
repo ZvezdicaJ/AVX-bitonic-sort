@@ -32,6 +32,11 @@ jobs:
       - name: "Setup python venv"
         uses: ./.github/actions/python_venv
 
+      # Install gold linker, which is part of bin utils.
+      - name: "Setup gold linker"
+        if:  matrix.compiler == 'clang++'
+        run: sudo apt-get install binutils
+
       #- name: Install gtest manually
       #  run: sudo apt-get install libgtest-dev libgmock-dev
 
