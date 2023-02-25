@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <immintrin.h>
+#include <iostream>
 #include <span>
 #include <vector>
 
@@ -114,6 +115,11 @@ void compare(__m256i &reg0, __m256i &reg1) {
         reg1 = max;
     }
 }
+
+__m256i reverseRegister(__m256i const &reg) {
+    __m256i reversed_halves = _mm256_permute2f128_si256(reg, reg, 0b00000001);
+    return _mm256_shuffle_epi32(reversed_halves, 0b00011011);
+}
 } // namespace
 
 void sort(__m256i &reg) {
@@ -126,7 +132,7 @@ void sort(__m256i &reg) {
     shuffleAndCompare<0b10110001, 0b01010101>(reg);
 }
 
-inline void sort(__m256i &reg0, __m256i &reg1) {
+void sort(__m256i &reg0, __m256i &reg1) {
     sort(reg1); // sort first register
     sort(reg0); // sort second register
     reverseAndCompare(reg0, reg1);
@@ -319,26 +325,22 @@ void compareFullLength8N(InternalSortParams<int> const &params) {
     std::size_t const &lastIdx = params.lastIdx;
     std::size_t const &maxIdx = params.span.size() - 1;
 
-    std::size_t length = firstIdx - lastIdx + 1;
-    std::size_t half = length / 2; // half je index prvega cez polovico
+    std::size_t length = lastIdx - firstIdx + 1;
+    std::size_t half = length / 2; // Half je index prvega cez polovico.
     for (std::int32_t toLoadIdx = half - 8; toLoadIdx >= 0; toLoadIdx -= 8) {
         if (lastIdx - 7 - toLoadIdx > maxIdx)
             break;
         int *p1 = params.span.data() + firstIdx + toLoadIdx;
         int *p2 = params.span.data() + lastIdx - 7 - toLoadIdx;
 
-        { // reverse lover half and compare to upper half
-            __m256i vec1 = _mm256_loadu_si256((__m256i *)p1);
-            __m256i vec2 = _mm256_loadu_si256((__m256i *)p2);
-            __m256i reversed_halves = _mm256_permute2f128_si256(vec1, vec1, 0b00000001);
-            __m256i reversed = _mm256_shuffle_epi32(reversed_halves, 0b00011011);
-            vec1 = _mm256_min_epi32(reversed, vec2);
-            vec2 = _mm256_max_epi32(reversed, vec2);
-            reversed_halves = _mm256_permute2f128_si256(vec1, vec1, 0b00000001);
-            vec1 = _mm256_shuffle_epi32(reversed_halves, 0b00011011);
-            _mm256_storeu_si256((__m256i *)p1, vec1);
-            _mm256_storeu_si256((__m256i *)p2, vec2);
-        }
+        __m256i vec1 = _mm256_loadu_si256((__m256i *)p1);
+        __m256i vec2 = _mm256_loadu_si256((__m256i *)p2);
+        __m256i reversed = reverseRegister(vec1);
+        vec1 = _mm256_min_epi32(reversed, vec2);
+        vec2 = _mm256_max_epi32(reversed, vec2);
+        vec1 = reverseRegister(vec1);
+        _mm256_storeu_si256((__m256i *)p1, vec1);
+        _mm256_storeu_si256((__m256i *)p2, vec2);
     }
 }
 
@@ -356,7 +358,6 @@ inline void laneCrossingCompare8N(InternalSortParams<int> const &params, std::ui
 
     if (length == 8) {
         __m256i reg = _mm256_loadu_si256((__m256i *)(p));
-        // this is the ending case do single vector permutations
         reverseHalvesAndCompare(reg);
         shuffleAndCompare<0b01001110, 0b00110011>(reg);
         shuffleAndCompare<0b10110001, 0b01010101>(reg);
@@ -392,10 +393,6 @@ inline void sort_8n(std::span<int> span) {
 
     assert(mod8(numToSort) == 0 && "The array to be sorted does not have the "
                                    "size that is a multiple of 8!");
-
-    std::size_t vec_count = numToSort / 8;
-    assert((numToSort >= 0 && (numToSort % 8) == 0) &&
-           "The array to be sorted is not a multiples of 8!");
 
     if (numToSort == 8) {
         __m256i vec = _mm256_loadu_si256((__m256i *)p);
@@ -433,6 +430,7 @@ inline void sort_8n(std::span<int> span) {
                 compareFullLength8N(params);
                 laneCrossingCompare8N(params, 0U);
             }
+            segmentLength *= 2;
         }
     }
 }
@@ -442,38 +440,39 @@ inline void compareFullLength(InternalSortParams<int> params) {
     std::size_t const &firstIdx = params.firstIdx;
     std::size_t const &lastIdx = params.lastIdx;
     std::size_t const &maxIdx = params.span.size() - 1;
+    auto p = params.span.data();
 
-    std::size_t length = firstIdx - lastIdx + 1;
-    std::size_t half = length / 2; // half je index prvega cez polovico
+    assert(lastIdx >= firstIdx);
+    std::size_t length = lastIdx - firstIdx + 1;
+    std::size_t half = length / 2;
     for (int i = half - 8; i >= 0; i -= 8) {
         // index of last vector to load
         int last_vec_to_load = lastIdx - 7 - i;
-        int diff = maxIdx - last_vec_to_load;
-        if (diff <= 0) {
+        if (maxIdx < last_vec_to_load)
             return;
-        }
-        // define pointers to the start of vectors to load
-        int *p1 = params.span.data() + firstIdx + i;
-        int *p2 = params.span.data() + last_vec_to_load;
-        __m256i vec2, mask;
-        if (diff <= 8)
-            auto [vec2, mask] = maskload({p2, std::uint32_t(diff + 1)});
-        else
-            vec2 = _mm256_loadu_si256((__m256i *)p2);
-        { // reverse lover half and compare to upper half
-            __m256i vec1 = _mm256_loadu_si256((__m256i *)p1);
-            __m256i reversed_halves = _mm256_permute2f128_si256(vec1, vec1, 0b00000001);
-            __m256i reversed = _mm256_shuffle_epi32(reversed_halves, 0b00011011);
-            vec1 = _mm256_min_epi32(reversed, vec2);
-            vec2 = _mm256_max_epi32(reversed, vec2);
-            reversed_halves = _mm256_permute2f128_si256(vec1, vec1, 0b00000001);
-            vec1 = _mm256_shuffle_epi32(reversed_halves, 0b00011011);
-            _mm256_storeu_si256((__m256i *)p1, vec1);
-            if (diff < 8)
-                _mm256_maskstore_epi32(p2, mask, vec2);
+
+        std::int32_t diff = maxIdx - last_vec_to_load;
+
+        int *p1 = p + firstIdx + i;
+        int *p2 = p + last_vec_to_load;
+
+        auto [vec2, mask] = [&]() {
+            if (diff < 7)
+                return maskload(std::span<int const>{p2, std::size_t(diff + 1)});
             else
-                _mm256_storeu_si256((__m256i *)p2, vec2);
-        }
+                return RegMask{_mm256_loadu_si256((__m256i *)p2), __m256i{}};
+        }();
+
+        __m256i vec1 = _mm256_loadu_si256((__m256i *)p1);
+        __m256i reversed = reverseRegister(vec1);
+        vec1 = _mm256_min_epi32(reversed, vec2);
+        vec2 = _mm256_max_epi32(reversed, vec2);
+        vec1 = reverseRegister(vec1);
+        _mm256_storeu_si256((__m256i *)p1, vec1);
+        if (diff < 7)
+            _mm256_maskstore_epi32(p2, mask, vec2);
+        else
+            _mm256_storeu_si256((__m256i *)p2, vec2);
     }
 }
 
@@ -483,9 +482,8 @@ inline void laneCrossingCompare(InternalSortParams<int> const &params, std::uint
     std::size_t const &maxIdx = params.span.size() - 1;
     std::size_t length = lastIdx - firstIdx + 1;
 
-    if (firstIdx > maxIdx) {
+    if (firstIdx > maxIdx)
         return;
-    }
 
     auto p = params.span.data();
     auto p1 = p + firstIdx;
@@ -509,7 +507,6 @@ inline void laneCrossingCompare(InternalSortParams<int> const &params, std::uint
             _mm256_maskstore_epi32(p1, mask, reg);
         else
             _mm256_storeu_si256((__m256i *)(p1), reg);
-
         return;
     }
 
@@ -518,7 +515,7 @@ inline void laneCrossingCompare(InternalSortParams<int> const &params, std::uint
     assert(length % 8 == 0);
     std::size_t halfLength = length / 2;
 
-    for (std::size_t i = 0; i < length / 2; i += 8) {
+    for (std::size_t i = 0; i < halfLength; i += 8) {
 
         std::size_t loadIndex = firstIdx + halfLength + i;
         if (maxIdx < loadIndex) {
@@ -554,7 +551,7 @@ inline void laneCrossingCompare(InternalSortParams<int> const &params, std::uint
 
 void sort(std::span<int> span) {
 
-    auto p = span.data();
+    auto const p = span.data();
     std::size_t const numToSort = span.size();
     std::size_t const end = numToSort - 1;
 
@@ -575,8 +572,6 @@ void sort(std::span<int> span) {
         _mm256_storeu_si256((__m256i *)p, reg1);
         _mm256_maskstore_epi32(p + 8, mask, reg2);
     } else {
-        std::size_t log2 = std::size_t(std::ceil(std::log2f(numToSort)));
-        std::size_t maxSegmentLength = std::size_t(std::pow(2, log2));
 
         for (std::size_t i = 0; i <= end - 7; i += 8) {
             __m256i vec1 = _mm256_loadu_si256((__m256i *)(p + i));
@@ -586,12 +581,15 @@ void sort(std::span<int> span) {
 
         std::int32_t reminder = mod8(span.size());
         if (reminder != 0) {
-            int *p = p + numToSort - reminder;
-            auto [reg1, mask] = maskload({p, std::size_t(reminder)});
+            std::cout << "size = " << span.size() << "  reminder = " << reminder << std::endl;
+            int *p1 = p + numToSort - reminder;
+            auto [reg1, mask] = maskload({p1, std::size_t(reminder)});
             sort(reg1);
-            _mm256_maskstore_epi32(p, mask, reg1);
+            _mm256_maskstore_epi32(p1, mask, reg1);
         }
 
+        std::size_t log2 = std::size_t(std::ceil(std::log2f(numToSort)));
+        std::size_t maxSegmentLength = std::size_t(std::pow(2, log2));
         std::size_t segmentLength = 16;
         for (std::uint32_t i = 0; i <= log2 - 4; i++) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {

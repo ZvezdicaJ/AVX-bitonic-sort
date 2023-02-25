@@ -110,28 +110,24 @@ TEST(SORT, TEST_2N_SORT_INT_VER_TEST2) {
 
     for (int k = 1; k < 5; k++) {
         for (int j = 1; j < 5; j++) {
-            // Shift bits to the left - basically multiplication with 2.
-            // 1 << 3:  1000
-            std::uint32_t const startAt = 1U << k;
             std::uint32_t const numberToSort = 8192;
-            std::uint32_t const size = numberToSort + startAt;
+            std::uint32_t const size = numberToSort;
 
             std::vector<int> vec1 = getRandomVector<int>(size);
             std::vector<int> vec2 = vec1;
 
-            bitonic_sort::sort_2n({vec1.data() + startAt, numberToSort});
+            bitonic_sort::sort_2n({vec1.data(), numberToSort});
 
-            std::sort(vec2.begin() + startAt, vec2.end());
+            std::sort(vec2.begin(), vec2.end());
 
             EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
         }
     }
 }
 
-/*
 TEST(SORT, TEST_SORT_INT_8n_VECTOR) {
 
-    for (std::uint32_t size = 8; size <= 4000; size += 8) {
+    for (std::uint32_t size = 8; size <= 400; size += 8) {
         std::vector<int> vec1 = getRandomVector<int>(size);
         std::vector<int> vec2 = vec1;
 
@@ -149,7 +145,7 @@ TEST(SORT, TEST_SORT_INT_VECTOR_ALL_CASES) {
         std::vector<int> vec1 = getRandomVector<int>(size);
         std::vector<int> vec2 = vec1;
 
-        bitonic_sort::sort(vec1);
+        bitonic_sort::sort(std::span(vec1));
         std::sort(vec2.begin(), vec2.end());
         EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
     }
@@ -170,12 +166,9 @@ TEST(SORT, TEST_SORT_INT_VECTOR_ALL_CASES) {
     std::vector<int> vec1(size);
     std::iota(vec1.rbegin(), vec1.rend(), 1);
     std::vector<int> vec2 = vec1;
-
-    bitonic_sort::sort(std::span<int>{vec1.data(), size});
-
+    bitonic_sort::sort(vec1);
     std::sort(vec2.begin(), vec2.end());
-
     EXPECT_THAT(vec1, ::testing::ContainerEq(vec2));
 }
-*/
+
 } // namespace bitonic_sort::test
