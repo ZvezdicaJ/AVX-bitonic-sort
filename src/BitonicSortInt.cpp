@@ -581,8 +581,7 @@ void sort(std::span<int> span) {
 
         std::int32_t reminder = mod8(span.size());
         if (reminder != 0) {
-            std::cout << "size = " << span.size() << "  reminder = " << reminder << std::endl;
-            int *p1 = p + numToSort - reminder;
+            auto p1 = p + numToSort - reminder;
             auto [reg1, mask] = maskload({p1, std::size_t(reminder)});
             sort(reg1);
             _mm256_maskstore_epi32(p1, mask, reg1);

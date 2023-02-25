@@ -653,7 +653,7 @@ void sort(std::span<float> span) {
             for (std::size_t n = 0; n < maxSegmentLength; n += segmentLength) {
                 InternalSortParams<float> const params{span, n, n + segmentLength - 1};
                 compareFullLength(params);
-                laneCrossingCompare(params, 0U);
+                laneCrossingCompareNew(params, 0U);
             }
             segmentLength *= 2;
         }
