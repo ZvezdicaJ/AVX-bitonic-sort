@@ -1,11 +1,12 @@
 name: Bitonic sort tests
 run-name: ${{ github.actor }} is running Bitonic sort tests.
 
-on:
-  push:
-    branches: ["*"]
-  pull_request:
-    branches: ["*"]
+on: [push, pull_request]
+#on:
+#  push:
+#    branches: ["*"]
+#  pull_request:
+#    branches: ["*"]
 
 #env:
 # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
