@@ -48,7 +48,7 @@ jobs:
 
       # Build your program with the given configuration
       - name: Build
-        run:
+        run: |
           echo ${LLVM_PATH}
           ls ./llvm/lib
           cmake --build ./build/${{ matrix.build_type }} --target install
