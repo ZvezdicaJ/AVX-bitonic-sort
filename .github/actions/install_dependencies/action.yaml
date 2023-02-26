@@ -14,22 +14,27 @@ runs:
         version: 1.11.0
 
     # Setup llvm.
-    - name: Cache LLVM and Clang
-      id: cache_llvm
-      uses: actions/cache@v2
-      with:
-        path: |
-          C:/Program Files/LLVM
-          ./llvm
-        key: llvm-15.0.6
+    #- name: Cache LLVM and Clang
+    #  id: cache_llvm
+    #  uses: actions/cache@v2
+    #  with:
+    #    path: |
+    #      C:/Program Files/LLVM
+    #      ./llvm
+    #    key: llvm-15.0.6
 
     # Setup clang and llvm.
-    - name: Install LLVM and Clang
-      id: install_llvm
-      uses: KyleMayes/install-llvm-action@v1
-      with:
-        version: "15.0.6"
-        cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+    #- name: Install LLVM and Clang
+    #  id: install_llvm
+    #  uses: KyleMayes/install-llvm-action@v1
+    #  with:
+    #    version: "15.0.6"
+    #    cached: ${{ steps.cache-llvm.outputs.cache-hit }}
+
+    - name: Install llvm manually
+      if: runner.os == 'Linux'
+      run: sudo apt-get install llvm-15-dev
+      shell: bash
 
     # If on linux, use apt-get to install gtest and gmock.
     - if: runner.os == 'Linux'
