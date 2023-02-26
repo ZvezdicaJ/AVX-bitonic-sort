@@ -37,6 +37,7 @@ runs:
       name: Install binutils, llvm and gtest.
       run: |
         sudo apt-get install binutils
+        sudo apt-get install clang++-15
         sudo apt-get install llvm-15-dev
         sudo apt-get install libgtest-dev libgmock-dev
         clang++-15 --version
