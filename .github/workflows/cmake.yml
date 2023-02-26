@@ -21,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        compiler: ["clang++", "g++"]
+        compiler: ["clang++-15", "g++"]
         build_type: ["Release", "Debug"]
 
     steps:
