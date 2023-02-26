@@ -39,6 +39,7 @@ runs:
         sudo apt-get install binutils
         sudo apt-get install llvm-15-dev
         sudo apt-get install libgtest-dev libgmock-dev
+        clang++-15 --version
       shell: bash
 
     - name: cache valgrind
