@@ -31,15 +31,14 @@ runs:
     #    version: "15.0.6"
     #    cached: ${{ steps.cache-llvm.outputs.cache-hit }}
 
-    - name: Install llvm manually
-      if: runner.os == 'Linux'
-      run: sudo apt-get install llvm-15-dev
-      shell: bash
 
     # If on linux, use apt-get to install gtest and gmock.
     - if: runner.os == 'Linux'
-      name: Install gtest manually
-      run: sudo apt-get install libgtest-dev libgmock-dev
+      name: Install binutils, llvm and gtest.
+      run: |
+        sudo apt-get install binutils
+        sudo apt-get install llvm-15-dev
+        sudo apt-get install libgtest-dev libgmock-dev
       shell: bash
 
     - name: cache valgrind
