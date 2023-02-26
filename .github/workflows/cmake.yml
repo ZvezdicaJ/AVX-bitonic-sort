@@ -33,7 +33,7 @@ jobs:
         uses: ./.github/actions/python_venv
 
       # Install gold linker, which is part of bin utils.
-      - name: "Setup gold linker"
+      - name: "Setup gold linker, which is aprt of binutils."
         if:  matrix.compiler == 'clang++'
         run: sudo apt-get install binutils
 
@@ -47,7 +47,10 @@ jobs:
 
       # Build your program with the given configuration
       - name: Build
-        run: cmake --build ./build/${{ matrix.build_type }} --target install
+        run:
+          echo ${LLVM_PATH}
+          ls ./llvm/lib
+          cmake --build ./build/${{ matrix.build_type }} --target install
 
       # Execute tests defined by the CMake configuration.
       - name: Test
