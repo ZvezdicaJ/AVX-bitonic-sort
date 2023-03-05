@@ -13,8 +13,7 @@
 #include <immintrin.h>
 
 #include <BitonicSort.h>
-#include <BitonicSortCommon.h>
-#include <TypeDefinitions.h>
+#include <RandomVectorGenerator.h>
 
 namespace bitonic_sort::test {
 

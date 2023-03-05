@@ -16,8 +16,11 @@
 #include <vector>
 
 #include <BitonicSortCommon.h>
+#include <RandomVectorGenerator.h>
 
 namespace bitonic_sort::benchmarks {
+
+using utils::getRandomVector;
 
 namespace {
 constexpr std::size_t maxVectorSize = 1 << 27; // std::numeric_limits<std::int32_t>::max();
@@ -51,7 +54,7 @@ template <typename T>
 void bitonicSortBenchmark(benchmark::State &state, std::function<void(std::span<T>)> functor) {
     for (auto _ : state) {
         state.PauseTiming();
-        std::vector<T> vec = utils::getRandomVector<T>(state.range(0));
+        std::vector<T> vec = getRandomVector<T>(state.range(0));
         state.ResumeTiming();
         // benchmark::DoNotOptimize(sort_2n_vector(vec.data(), 0,
         // vec.size() - 1)); // DoNoOptimize will store the result
@@ -66,7 +69,8 @@ constexpr static auto bitonicSortBenchmarkF = bitonicSortBenchmark<float>;
 constexpr static auto bitonicSortBenchmarkD = bitonicSortBenchmark<double>;
 
 #define DEFINE_BENCHMARK(BenchmarkTemplate, functionToTest, SortElementType, Name)            \
-    BENCHMARK_CAPTURE(BenchmarkTemplate, Name,                                                \
+    BENCHMARK_CAPTURE(BenchmarkTemplate,                                                      \
+                      Name,                                                                   \
                       LAMBDA_WRAPPER_FOR_BENCHMARK_FUNCTION(functionToTest, SortElementType))
 
 // float benchmarks

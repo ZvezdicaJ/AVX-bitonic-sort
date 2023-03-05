@@ -11,7 +11,7 @@
 #include <numeric>
 
 #include <BitonicSort.h>
-#include <TypeDefinitions.h>
+#include <RandomVectorGenerator.h>
 
 namespace bitonic_sort::test {
 
