@@ -19,10 +19,10 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(GTest REQUIRED CONFIG HINTS ${GTEST_PATH})
+find_package(GTest CONFIG HINTS ${GTEST_PATH})
 enable_testing()
 
-find_package(benchmark HINTS ${GBENCHMARK_PATH})
+find_package(benchmark CONFIG HINTS ${GB_PATH})
 
 include_directories(src)
 
@@ -30,9 +30,15 @@ add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(benchmarks)
 
+if(benchmark_FOUND)
 install(TARGETS benchmarks
         CONFIGURATIONS ${CMAKE_BUILD_TYPE}
 )
+unset(installDir)
+endif()
+
+install(TARGETS bitonic_sort
+        CONFIGURATIONS ${CMAKE_BUILD_TYPE})
 
 message("CMAKE_SOURCE_DIR = ${CMAKE_SOURCE_DIR}")
 message("CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
